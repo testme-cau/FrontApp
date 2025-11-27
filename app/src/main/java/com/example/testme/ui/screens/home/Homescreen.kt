@@ -1,4 +1,4 @@
-package com.example.testme.ui.screens
+package com.example.testme.ui.screens.home
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -24,19 +24,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.testme.ui.navigation.Screen
 import kotlin.math.cos
 import kotlin.math.sin
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
-    val gradientBackground = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-        )
-    )
 
     Scaffold(
         containerColor = Color.Transparent
@@ -44,9 +38,9 @@ fun HomeScreen(navController: NavController) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(gradientBackground)
                 .padding(padding)
         ) {
+            SoftBlobBackground()
             FrontFacingRotatingPanelsBackground()
             Column(
                 modifier = Modifier.fillMaxSize()
@@ -66,7 +60,7 @@ fun HomeScreen(navController: NavController) {
                             text = "Test.me",
                             style = MaterialTheme.typography.headlineLarge.copy(
                                 fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontSize = 52.sp
                             )
                         )
@@ -74,7 +68,7 @@ fun HomeScreen(navController: NavController) {
                         Text(
                             text = "AI 기반 맞춤형 시험 생성 플랫폼",
                             style = MaterialTheme.typography.titleMedium.copy(
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                                color = Color(0xFF004D2E).copy(alpha = 0.9f),
                                 textAlign = TextAlign.Center
                             ),
                             textAlign = TextAlign.Center
@@ -95,47 +89,22 @@ fun HomeScreen(navController: NavController) {
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        Button(
-                            onClick = { navController.navigate("upload") },
+                        GradientButton(
+                            text = "🧾 시험",
+                            onClick = { navController.navigate(Screen.Dashboard.route) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(130.dp),
-                            shape = MaterialTheme.shapes.extraLarge,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
+                                .height(100.dp)
+                        )
 
-                            )
-                        ) {
-                            Text(
-                                "🧾 새로운 시험 풀기",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp
-                                )
-                            )
-                        }
-
-                        Button(
-                            onClick = { navController.navigate("history") },
+                        GradientButton(
+                            text = "👤 내 프로필",
+                            onClick = { navController.navigate(Screen.Profile.route) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(130.dp),
-                            shape = MaterialTheme.shapes.extraLarge,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.primary
+                                .height(100.dp)
+                        )
 
-                            ),
-                        ) {
-                            Text(
-                                "📚 이전 시험 기록",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp
-                                )
-                            )
-                        }
                     }
                 }
                 Box(
@@ -160,7 +129,7 @@ fun HomeScreen(navController: NavController) {
 
 @Composable
 fun FrontFacingRotatingPanelsBackground() {
-    val lineColor = MaterialTheme.colorScheme.primary
+    val lineColor = Color(0xFF005F3E)
     val infiniteTransition = rememberInfiniteTransition(label = "")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -245,7 +214,7 @@ fun FrontFacingRotatingPanelsBackground() {
             repeat(lineCount) { j ->
                 val yOffset = y - rectHeight / 2f + titleMarginTop + (j + 1) * lineSpacing
                 drawLine(
-                    color = lineColor.copy(alpha = 0.7f),
+                    color = lineColor.copy(alpha = 0.5f),
                     start = Offset(x - rectWidth / 2f + 40f, yOffset),
                     end = Offset(x + rectWidth / 2f - 40f, yOffset),
                     strokeWidth = 4f
@@ -253,7 +222,7 @@ fun FrontFacingRotatingPanelsBackground() {
             }
 
             drawLine(
-                color = lineColor,
+                color = lineColor.copy(alpha = 0.7f),
                 start = Offset(x - rectWidth / 2f + 20f, y - rectHeight / 2f + 100f),
                 end = Offset(x + rectWidth / 2f - 20f, y - rectHeight / 2f + 100f),
                 strokeWidth = 8f
@@ -262,3 +231,108 @@ fun FrontFacingRotatingPanelsBackground() {
     }
 }
 
+@Composable
+fun SoftBlobBackground() {
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF6FFFA))
+    ) {
+        // Blob 1 (Green)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFB3F6A5).copy(alpha = 0.55f),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.3f, size.height * 0.35f),
+                radius = size.minDimension * 0.6f
+            ),
+            center = Offset(size.width * 0.3f, size.height * 0.35f),
+            radius = size.minDimension * 0.6f
+        )
+
+        // Blob 2 (Mint Blue)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFA5F6E8).copy(alpha = 0.45f),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.8f, size.height * 0.25f),
+                radius = size.minDimension * 0.5f
+            ),
+            center = Offset(size.width * 0.8f, size.height * 0.25f),
+            radius = size.minDimension * 0.5f
+        )
+
+        // Blob 3 (Light Teal)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFAEEBFF).copy(alpha = 0.45f),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.15f, size.height * 0.75f),
+                radius = size.minDimension * 0.55f
+            ),
+            center = Offset(size.width * 0.15f, size.height * 0.75f),
+            radius = size.minDimension * 0.55f
+        )
+
+        // Center light glow
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.4f),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.5f, size.height * 0.5f),
+                radius = size.minDimension * 0.7f
+            ),
+            center = Offset(size.width * 0.5f, size.height * 0.5f),
+            radius = size.minDimension * 0.7f
+        )
+    }
+}
+
+@Composable
+fun GradientButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val gradient = Brush.horizontalGradient(
+        colors = listOf(
+            Color(0xFF00A86B), // 초록
+            Color(0xFF0099CC)  // 청록
+        )
+    )
+
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        contentPadding = PaddingValues(),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Transparent
+        ),
+        shape = MaterialTheme.shapes.extraLarge
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(gradient, shape = MaterialTheme.shapes.extraLarge)
+                .padding(vertical = 18.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontSize = 20.sp
+                )
+            )
+        }
+    }
+}
