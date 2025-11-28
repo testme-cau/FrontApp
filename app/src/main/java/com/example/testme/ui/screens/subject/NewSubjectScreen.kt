@@ -14,9 +14,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,7 +34,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,17 +54,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.SubjectCreateRequest
 import com.example.testme.data.model.group.GroupData
 import com.example.testme.data.model.group.GroupListResponse
+import com.example.testme.ui.screens.home.SoftBlobBackground
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.lifecycle.viewModelScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,118 +83,182 @@ fun NewSubjectScreen(
         viewModel.loadGroups()
     }
 
+    val brandPrimary = Color(0xFF5BA27F)
+    val brandPrimaryDeep = Color(0xFF1E4032)
+
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(
-                title = { Text(text = "새 과목 추가") },
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "새 과목 추가",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            color = brandPrimaryDeep
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
                 },
-                scrollBehavior = androidx.compose.material3.TopAppBarDefaults.pinnedScrollBehavior(
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                ),
+                scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
                     rememberTopAppBarState()
                 )
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.Top
         ) {
-            Text(text = "과목 정보를 입력해서 새로운 과목을 만들어 보세요.", style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(16.dp))
+            // 부드러운 배경
+            SoftBlobBackground()
 
-            OutlinedTextField(
-                value = uiState.name,
-                onValueChange = { viewModel.updateName(it) },
-                label = { Text("과목명") },
-                placeholder = { Text("예: 데이터베이스") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = uiState.description,
-                onValueChange = { viewModel.updateDescription(it) },
-                label = { Text("설명") },
-                placeholder = { Text("과목에 대한 간단한 설명") },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                maxLines = 5
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(text = "그룹 (선택)", style = MaterialTheme.typography.labelMedium)
-            Spacer(modifier = Modifier.height(4.dp))
-            GroupDropdown(
-                groups = uiState.groups,
-                loading = uiState.loadingGroups,
-                selectedGroupId = uiState.selectedGroupId,
-                onGroupSelected = { viewModel.updateGroup(it) },
-                onCreateNewGroup = {
-                    navController.navigate("group/new")
-                }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(text = "색상", style = MaterialTheme.typography.labelMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            ColorPaletteRow(
-                colors = uiState.availableColors,
-                selectedColor = uiState.color,
-                onColorSelected = { viewModel.updateColor(it) }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            val result = viewModel.submit()
-                            if (result.isSuccess) {
-                                snackbarHostState.showSnackbar("과목 생성 완료")
-                                navController.popBackStack()
-                            } else {
-                                snackbarHostState.showSnackbar(
-                                    result.exceptionOrNull()?.message ?: "과목 생성 실패"
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.96f)
+                    ),
+                    elevation = CardDefaults.cardElevation(8.dp),
+                    shape = CardDefaults.shape
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 20.dp),
+                        verticalArrangement = Arrangement.Top
+                    ) {
+                        Text(
+                            text = "과목 정보를 입력해서 새로운 과목을 만들어 보세요.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF4C6070)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = uiState.name,
+                            onValueChange = { viewModel.updateName(it) },
+                            label = { Text("과목명") },
+                            placeholder = { Text("예: 데이터베이스") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = uiState.description,
+                            onValueChange = { viewModel.updateDescription(it) },
+                            label = { Text("설명") },
+                            placeholder = { Text("과목에 대한 간단한 설명") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            maxLines = 5
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "그룹 (선택)",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        GroupDropdown(
+                            groups = uiState.groups,
+                            loading = uiState.loadingGroups,
+                            selectedGroupId = uiState.selectedGroupId,
+                            onGroupSelected = { viewModel.updateGroup(it) },
+                            onCreateNewGroup = {
+                                navController.navigate("group/new")
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "색상",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        ColorPaletteRow(
+                            colors = uiState.availableColors,
+                            selectedColor = uiState.color,
+                            onColorSelected = { viewModel.updateColor(it) }
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        val result = viewModel.submit()
+                                        if (result.isSuccess) {
+                                            snackbarHostState.showSnackbar("과목 생성 완료")
+                                            navController.popBackStack()
+                                        } else {
+                                            snackbarHostState.showSnackbar(
+                                                result.exceptionOrNull()?.message
+                                                    ?: "과목 생성 실패"
+                                            )
+                                        }
+                                    }
+                                },
+                                enabled = !uiState.submitting &&
+                                        uiState.name.isNotBlank(),
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = brandPrimary,
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                if (uiState.submitting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier
+                                            .height(18.dp)
+                                            .padding(end = 8.dp),
+                                        strokeWidth = 2.dp,
+                                        color = Color.White
+                                    )
+                                }
+                                Text(
+                                    text = if (uiState.submitting) "생성 중..." else "과목 생성"
                                 )
                             }
-                        }
-                    },
-                    enabled = !uiState.submitting && uiState.name.isNotBlank(),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if (uiState.submitting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .height(18.dp)
-                                .padding(end = 8.dp),
-                            strokeWidth = 2.dp
-                        )
-                    }
-                    Text(text = if (uiState.submitting) "생성 중..." else "과목 생성")
-                }
 
-                OutlinedButton(
-                    onClick = { navController.popBackStack() },
-                    enabled = !uiState.submitting,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(text = "취소")
+                            OutlinedButton(
+                                onClick = { navController.popBackStack() },
+                                enabled = !uiState.submitting,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(text = "취소")
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -203,57 +274,54 @@ fun GroupDropdown(
     onCreateNewGroup: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var textFieldValue by remember {
-        mutableStateOf(
-            TextFieldValue(
-                text = groups.firstOrNull { it.groupId == selectedGroupId }?.name ?: ""
-            )
-        )
+
+    val selectedGroupName = remember(groups, selectedGroupId) {
+        groups.firstOrNull { it.groupId == selectedGroupId }?.name ?: "그룹 없음"
     }
 
     Column {
-        OutlinedTextField(
-            value = textFieldValue,
-            onValueChange = {},
-            enabled = false,
-            label = { Text(if (loading) "그룹 로딩 중..." else "그룹 선택") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = !loading) {
-                    expanded = !expanded
-                }
-        )
-
-        androidx.compose.material3.DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            androidx.compose.material3.DropdownMenuItem(
-                text = { Text("그룹 없음") },
-                onClick = {
-                    onGroupSelected(null)
-                    textFieldValue = TextFieldValue("")
-                    expanded = false
-                }
+        Box {
+            OutlinedTextField(
+                value = selectedGroupName,
+                onValueChange = {},
+                enabled = false,
+                label = { Text(if (loading) "그룹 로딩 중..." else "그룹 선택") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = !loading) {
+                        expanded = true
+                    }
             )
-            groups.forEach { group ->
-                androidx.compose.material3.DropdownMenuItem(
-                    text = { Text(group.name) },
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("그룹 없음") },
                     onClick = {
-                        onGroupSelected(group.groupId)
-                        textFieldValue = TextFieldValue(group.name)
+                        onGroupSelected(null)
                         expanded = false
                     }
                 )
-            }
-            Divider()
-            androidx.compose.material3.DropdownMenuItem(
-                text = { Text("＋ 새 그룹 생성") },
-                onClick = {
-                    expanded = false
-                    onCreateNewGroup()
+                groups.forEach { group ->
+                    DropdownMenuItem(
+                        text = { Text(group.name) },
+                        onClick = {
+                            onGroupSelected(group.groupId)
+                            expanded = false
+                        }
+                    )
                 }
-            )
+                Divider()
+                DropdownMenuItem(
+                    text = { Text("＋ 새 그룹 생성") },
+                    onClick = {
+                        expanded = false
+                        onCreateNewGroup()
+                    }
+                )
+            }
         }
     }
 }
@@ -282,7 +350,10 @@ fun ColorPaletteRow(
                         .background(color)
                         .border(
                             width = if (isSelected) 2.dp else 0.dp,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            color = if (isSelected)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                Color.Transparent,
                             shape = CircleShape
                         )
                 )
@@ -298,7 +369,6 @@ fun ColorPaletteRow(
         }
     }
 }
-
 
 data class NewSubjectUiState(
     val name: String = "",
@@ -368,7 +438,10 @@ class NewSubjectViewModel(
                 name = _uiState.value.name,
                 description = _uiState.value.description.ifBlank { null },
                 groupId = _uiState.value.selectedGroupId,
-                color = String.format("#%06X", (_uiState.value.color.value.toInt() and 0xFFFFFF))
+                color = String.format(
+                    "#%06X",
+                    (_uiState.value.color.value.toInt() and 0xFFFFFF)
+                )
             )
             apiService.createSubject("Bearer $token", request)
             _uiState.value = _uiState.value.copy(submitting = false)

@@ -26,6 +26,7 @@ import com.example.testme.ui.screens.exam.TakeExamScreen
 import com.example.testme.ui.screens.group.NewGroupScreen
 import com.example.testme.ui.screens.profile.ProfileScreen
 import com.example.testme.ui.screens.subject.EditSubjectScreen
+import com.example.testme.ui.screens.subject.PdfPreviewScreen
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
 sealed class Screen(val route: String) {
@@ -200,6 +201,26 @@ fun AppNavHost(
                 activity =activity
             )
         }
+
+        composable(
+            route = "subjects/{subjectId}/pdfs/{fileId}",
+            arguments = listOf(
+                navArgument("subjectId") { type = NavType.StringType },
+                navArgument("fileId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val subjectIdArg = backStackEntry.arguments!!.getString("subjectId")!!
+            val fileIdArg = backStackEntry.arguments!!.getString("fileId")!!
+
+            PdfPreviewScreen(
+                navController = navController,
+                apiService = api,
+                token = token,
+                subjectId = subjectIdArg,
+                fileId = fileIdArg
+            )
+        }
+
 
         composable(Screen.NewSubject.route) {
             NewSubjectScreen(

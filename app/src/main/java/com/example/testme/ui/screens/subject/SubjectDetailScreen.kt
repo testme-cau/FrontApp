@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.ContentResolver
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import android.provider.OpenableColumns
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -56,13 +56,10 @@ import com.example.testme.data.model.JobListResponse
 import com.example.testme.data.model.PdfData
 import com.example.testme.data.model.PdfDeleteResponse
 import com.example.testme.data.model.PdfListResponse
-import com.example.testme.data.model.SubjectData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.RequestBody
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Description
@@ -71,8 +68,19 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.ui.graphics.Color
 import com.example.testme.data.model.SubjectResponse
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
+import android.content.Intent
+import android.os.Build
+import android.provider.DocumentsContract
+import android.provider.MediaStore
+import android.annotation.SuppressLint
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,34 +100,52 @@ fun SubjectDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var pdfToDelete by remember { mutableStateOf<PdfData?>(null) }
 
+    val brandPrimary = Color(0xFF5BA27F)
+    val brandSecondaryText = Color(0xFF4C6070)
+
     LaunchedEffect(Unit) {
         viewModel.loadAll()
     }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenMultipleDocuments(),
-        onResult = { uris ->
-            if (!uris.isNullOrEmpty()) {
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data = result.data
+            val uris = mutableListOf<Uri>()
+
+            data?.data?.let { uris.add(it) }
+
+            val clipData = data?.clipData
+            if (clipData != null) {
+                for (i in 0 until clipData.itemCount) {
+                    clipData.getItemAt(i).uri?.let { uris.add(it) }
+                }
+            }
+
+            if (uris.isNotEmpty()) {
                 scope.launch {
-                    val result = viewModel.uploadPdfs(uris)
-                    if (result.isSuccess) {
+                    val uploadResult = viewModel.uploadPdfs(uris)
+                    if (uploadResult.isSuccess) {
                         snackbarHostState.showSnackbar("PDF 업로드 완료")
                     } else {
                         snackbarHostState.showSnackbar(
-                            result.exceptionOrNull()?.message ?: "PDF 업로드 실패"
+                            uploadResult.exceptionOrNull()?.message ?: "PDF 업로드 실패"
                         )
                     }
                 }
             }
         }
-    )
+    }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        uiState.subjectName.ifBlank { "과목 상세" }
+                        uiState.subjectName.ifBlank { "과목 상세" },
+                        style = MaterialTheme.typography.titleLarge
                     )
                 },
                 navigationIcon = {
@@ -131,166 +157,206 @@ fun SubjectDetailScreen(
                     OutlinedButton(
                         onClick = {
                             navController.navigate("subjects/$subjectId/exams")
-                        }
+                        },
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            width = 1.dp
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = brandPrimary
+                        )
                     ) {
                         Text("시험 목록")
                     }
                 },
-                scrollBehavior = androidx.compose.material3.TopAppBarDefaults.pinnedScrollBehavior(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                ),
+                scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
                     rememberTopAppBarState()
                 )
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
-        if (uiState.loadingSubject && uiState.subjectName.isBlank()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                item {
-                    SubjectHeaderSection(
-                        name = uiState.subjectName,
-                        description = uiState.subjectDescription,
-                        groupName = uiState.groupName,
-                        colorHex = uiState.colorHex
-                    )
-                }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            com.example.testme.ui.screens.home.SoftBlobBackground()
 
-                item {
-                    PdfSectionHeader(
-                        onUploadClick = {
-                            filePickerLauncher.launch(arrayOf("application/pdf"))
-                        },
-                        uploading = uiState.uploading,
-                        uploadProgress = uiState.uploadProgress
-                    )
+            if (uiState.loadingSubject && uiState.subjectName.isBlank()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        SubjectHeaderSection(
+                            name = uiState.subjectName,
+                            description = uiState.subjectDescription,
+                            groupName = uiState.groupName,
+                            colorHex = uiState.colorHex
+                        )
+                    }
 
-                item {
-                    if (uiState.loadingPdfs && uiState.pdfs.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    } else if (uiState.pdfs.isEmpty()) {
+                    item {
+                        PdfSectionHeader(
+                            onUploadClick = {
+                                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                                    addCategory(Intent.CATEGORY_OPENABLE)
+                                    type = "application/pdf"
+                                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                        putExtra(
+                                            DocumentsContract.EXTRA_INITIAL_URI,
+                                            MediaStore.Downloads.EXTERNAL_CONTENT_URI
+                                        )
+                                    }
+                                }
+                                filePickerLauncher.launch(intent)
+                            },
+                            uploading = uiState.uploading,
+                            uploadProgress = uiState.uploadProgress
+                        )
+                    }
+
+                    item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
+                                containerColor = Color.White.copy(alpha = 0.96f)
+                            ),
+                            elevation = CardDefaults.cardElevation(4.dp)
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("업로드된 PDF가 없습니다.")
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    "오른쪽 상단 버튼으로 PDF를 업로드해 주세요.",
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
-                    } else {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            uiState.pdfs.forEach { pdf ->
-                                PdfRow(
-                                    pdf = pdf,
-                                    onOpen = {
-                                        navController.navigate("subjects/$subjectId/pdfs/${pdf.fileId}")
-                                    },
-                                    onDelete = {
-                                        pdfToDelete = pdf
-                                        showDeleteDialog = true
-                                    },
-                                    onGenerateExam = {
-                                        navController.navigate("subjects/$subjectId/generate-exam")
+                            Box(modifier = Modifier.padding(12.dp)) {
+                                when {
+                                    uiState.loadingPdfs && uiState.pdfs.isEmpty() -> {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(120.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator()
+                                        }
                                     }
-                                )
-                            }
-                        }
-                    }
-                }
 
-                item {
-                    JobSummarySection(
-                        examJobs = uiState.examJobs,
-                        gradingJobs = uiState.gradingJobs,
-                        loadingJobs = uiState.loadingJobs,
-                        onRefresh = { viewModel.loadJobs() }
-                    )
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(72.dp))
-                }
-            }
-        }
-
-        if (showDeleteDialog && pdfToDelete != null) {
-            AlertDialog(
-                onDismissRequest = { showDeleteDialog = false },
-                title = { Text("PDF 삭제") },
-                text = {
-                    Text(
-                        "\"${pdfToDelete?.originalFilename}\" 파일을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            val target = pdfToDelete
-                            if (target != null) {
-                                scope.launch {
-                                    val result = viewModel.deletePdf(target.fileId)
-                                    if (result.isSuccess) {
-                                        snackbarHostState.showSnackbar("삭제 완료")
-                                    } else {
-                                        snackbarHostState.showSnackbar(
-                                            result.exceptionOrNull()?.message ?: "삭제 실패"
-                                        )
+                                    uiState.pdfs.isEmpty() -> {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(4.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text("업로드된 PDF가 없습니다.")
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                "오른쪽 상단 버튼으로 PDF를 업로드해 주세요.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = brandSecondaryText
+                                            )
+                                        }
                                     }
-                                    showDeleteDialog = false
-                                    pdfToDelete = null
+
+                                    else -> {
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            uiState.pdfs.forEach { pdf ->
+                                                val isDeleting = uiState.deletingFileId == pdf.fileId
+                                                PdfRow(
+                                                    pdf = pdf,
+                                                    onOpen = {
+                                                        navController.navigate("subjects/$subjectId/pdfs/${pdf.fileId}")
+                                                    },
+                                                    onDelete = {
+                                                        pdfToDelete = pdf
+                                                        showDeleteDialog = true
+                                                    },
+                                                    onGenerateExam = {
+                                                        navController.navigate("subjects/$subjectId/generate-exam")
+                                                    },
+                                                    isDeleting = isDeleting
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
-                    ) {
-                        Text("삭제")
                     }
-                },
-                dismissButton = {
-                    OutlinedButton(
-                        onClick = {
-                            showDeleteDialog = false
-                            pdfToDelete = null
-                        }
-                    ) {
-                        Text("취소")
+
+                    item {
+                        JobSummarySection(
+                            examJobs = uiState.examJobs,
+                            gradingJobs = uiState.gradingJobs,
+                            loadingJobs = uiState.loadingJobs,
+                            onRefresh = { viewModel.loadJobs() }
+                        )
                     }
+
+                    item { Spacer(modifier = Modifier.height(72.dp)) }
                 }
-            )
+            }
+
+            if (showDeleteDialog && pdfToDelete != null) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showDeleteDialog = false
+                        pdfToDelete = null
+                    },
+                    title = { Text("PDF 삭제") },
+                    text = {
+                        Text(
+                            "\"${pdfToDelete?.originalFilename}\" 파일을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                val target = pdfToDelete
+                                if (target != null) {
+                                    scope.launch {
+                                        val result = viewModel.deletePdf(target.fileId)
+                                        if (result.isSuccess) {
+                                            snackbarHostState.showSnackbar("삭제 완료")
+                                        } else {
+                                            snackbarHostState.showSnackbar(
+                                                result.exceptionOrNull()?.message ?: "삭제 실패"
+                                            )
+                                        }
+                                        showDeleteDialog = false
+                                        pdfToDelete = null
+                                    }
+                                }
+                            }
+                        ) {
+                            Text("삭제")
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(
+                            onClick = {
+                                showDeleteDialog = false
+                                pdfToDelete = null
+                            }
+                        ) {
+                            Text("취소")
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -309,42 +375,54 @@ private fun SubjectHeaderSection(
         null
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 4.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.97f)
+        ),
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
-        if (groupName != null) {
-            Text(
-                text = groupName,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-        }
-        Text(
-            text = name,
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
-        )
-        if (!description.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = description ?: "",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-        if (color != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = color)
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            if (!groupName.isNullOrBlank()) {
                 Text(
-                    text = "이 색상은 과목 카드와 관련 UI에 사용됩니다.",
-                    modifier = Modifier.padding(8.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White
+                    text = groupName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            Text(
+                text = name,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
+            )
+            if (!description.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = description ?: "",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            if (color != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .height(18.dp)
+                            .fillMaxWidth(0.15f)
+                            .background(color)
+                    )
+                    Text(
+                        text = "이 색상은 과목 카드와 관련 UI에 사용됩니다.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
     }
@@ -356,47 +434,60 @@ private fun PdfSectionHeader(
     uploading: Boolean,
     uploadProgress: Pair<Int, Int>?
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    val brandPrimary = Color(0xFF5BA27F)
+    val brandSecondaryText = Color(0xFF4C6070)
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column {
-            Text(
-                text = "PDF 파일",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-            )
-            Text(
-                text = "업로드된 교재 PDF를 기반으로 시험을 생성합니다.",
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-        Button(
-            onClick = onUploadClick,
-            enabled = !uploading
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.CloudUpload,
-                contentDescription = "Upload"
-            )
-            Spacer(modifier = Modifier.height(0.dp))
-            Text(text = if (uploading) "업로드 중..." else "PDF 업로드")
+            Column {
+                Text(
+                    text = "PDF 파일",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    text = "업로드된 교재 PDF를 기반으로 시험을 생성합니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = brandSecondaryText
+                )
+            }
+            Button(
+                onClick = onUploadClick,
+                enabled = !uploading,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = brandPrimary,
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CloudUpload,
+                    contentDescription = "Upload"
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = if (uploading) "업로드 중..." else "PDF 업로드")
+            }
         }
-    }
-    if (uploading && uploadProgress != null) {
-        val (current, total) = uploadProgress
-        val progress = if (total > 0) current.toFloat() / total.toFloat() else 0f
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
-        ) {
-            LinearProgressIndicator(progress = progress)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "$current / $total 파일 업로드 중",
-                style = MaterialTheme.typography.bodySmall
-            )
+        if (uploading && uploadProgress != null) {
+            val (current, total) = uploadProgress
+            val progress = if (total > 0) current.toFloat() / total.toFloat() else 0f
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                LinearProgressIndicator(progress = progress)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "$current / $total 파일 업로드 중",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = brandSecondaryText
+                )
+            }
         }
     }
 }
@@ -406,12 +497,16 @@ private fun PdfRow(
     pdf: PdfData,
     onOpen: () -> Unit,
     onDelete: () -> Unit,
-    onGenerateExam: () -> Unit
+    onGenerateExam: () -> Unit,
+    isDeleting: Boolean
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onOpen),
+            .clickable(
+                enabled = !isDeleting,
+                onClick = onOpen
+            ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -421,10 +516,14 @@ private fun PdfRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     imageVector = Icons.Default.Description,
                     contentDescription = "PDF",
@@ -433,26 +532,44 @@ private fun PdfRow(
                 Column {
                     Text(
                         text = pdf.originalFilename,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${pdf.size ?: 0} 페이지 • ${(pdf.size / 1024f / 1024f).let { String.format("%.2f MB", it) }}",
-                        style = MaterialTheme.typography.bodySmall
+                        text = String.format("%.2f MB", pdf.size / 1024f / 1024f),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip
                     )
                 }
             }
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedButton(onClick = onGenerateExam) {
+                OutlinedButton(
+                    onClick = onGenerateExam,
+                    enabled = !isDeleting
+                ) {
                     Text("시험 생성")
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete"
-                    )
+                IconButton(
+                    onClick = onDelete,
+                    enabled = !isDeleting
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete"
+                        )
+                    }
                 }
             }
         }
@@ -466,11 +583,14 @@ private fun JobSummarySection(
     loadingJobs: Boolean,
     onRefresh: () -> Unit
 ) {
+    val brandSecondaryText = Color(0xFF4C6070)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            containerColor = Color.White.copy(alpha = 0.97f)
+        ),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -497,10 +617,14 @@ private fun JobSummarySection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp
+                    )
                     Text(
                         text = "작업 목록을 불러오는 중...",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = brandSecondaryText
                     )
                 }
             } else {
@@ -514,7 +638,11 @@ private fun JobSummarySection(
                             style = MaterialTheme.typography.labelMedium
                         )
                         Text(
-                            text = "진행 중 ${examJobs.count { it.status == "processing" || it.status == "pending" }}건",
+                            text = "진행 중 ${
+                                examJobs.count {
+                                    it.status == "processing" || it.status == "pending"
+                                }
+                            }건",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -524,7 +652,11 @@ private fun JobSummarySection(
                             style = MaterialTheme.typography.labelMedium
                         )
                         Text(
-                            text = "진행 중 ${gradingJobs.count { it.status == "processing" || it.status == "pending" }}건",
+                            text = "진행 중 ${
+                                gradingJobs.count {
+                                    it.status == "processing" || it.status == "pending"
+                                }
+                            }건",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -546,7 +678,8 @@ data class SubjectDetailUiState(
     val uploadProgress: Pair<Int, Int>? = null,
     val loadingJobs: Boolean = false,
     val examJobs: List<JobData> = emptyList(),
-    val gradingJobs: List<JobData> = emptyList()
+    val gradingJobs: List<JobData> = emptyList(),
+    val deletingFileId: String? = null
 )
 
 class SubjectDetailViewModel(
@@ -620,6 +753,18 @@ class SubjectDetailViewModel(
         }
     }
 
+    private fun getFileName(uri: Uri): String {
+        var result: String? = null
+        val cursor = contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (nameIndex != -1 && it.moveToFirst()) {
+                result = it.getString(nameIndex)
+            }
+        }
+        return result ?: "upload.pdf"
+    }
+
     suspend fun uploadPdfs(uris: List<Uri>): Result<Unit> {
         if (uris.isEmpty()) return Result.success(Unit)
 
@@ -636,7 +781,7 @@ class SubjectDetailViewModel(
                 val bytes = inputStream.readBytes()
                 inputStream.close()
 
-                val fileName = uri.lastPathSegment ?: "upload.pdf"
+                val fileName = getFileName(uri)   // ← 여기만 변경
 
                 val mime = contentResolver.getType(uri) ?: "application/pdf"
                 val mediaType = try {
@@ -675,17 +820,23 @@ class SubjectDetailViewModel(
             Result.failure(e)
         }
     }
-
     suspend fun deletePdf(fileId: String): Result<PdfDeleteResponse> {
+        // 어떤 파일을 삭제 중인지 표시
+        _uiState.value = _uiState.value.copy(deletingFileId = fileId)
+
         return try {
             val response: PdfDeleteResponse =
                 apiService.deletePdf("Bearer $token", subjectId, fileId)
             loadPdfs()
+
+            _uiState.value = _uiState.value.copy(deletingFileId = null)
             Result.success(response)
         } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(deletingFileId = null)
             Result.failure(e)
         }
     }
+
 }
 
 class SubjectDetailViewModelFactory(

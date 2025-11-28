@@ -1,6 +1,8 @@
 package com.example.testme.ui.screens.group
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,20 +10,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,7 +36,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -38,6 +48,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.group.GroupCreateRequest
+import com.example.testme.ui.screens.home.SoftBlobBackground
 import kotlinx.coroutines.launch
 
 data class NewGroupUiState(
@@ -110,91 +121,129 @@ fun NewGroupScreen(
     val state = viewModel.uiState
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("새 그룹 만들기") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                scrollBehavior = androidx.compose.material3.TopAppBarDefaults.pinnedScrollBehavior(
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = Color(0xFF1E4032)
+                ),
+                scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
                     rememberTopAppBarState()
                 )
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.Top
         ) {
-            Text("과목을 묶어서 관리할 그룹을 만들어 보세요.")
-            Spacer(modifier = Modifier.height(16.dp))
+            SoftBlobBackground()
 
-            OutlinedTextField(
-                value = state.name,
-                onValueChange = { viewModel.updateName(it) },
-                label = { Text("그룹 이름") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = state.description,
-                onValueChange = { viewModel.updateDescription(it) },
-                label = { Text("설명 (선택)") },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                maxLines = 5
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.Top
             ) {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            val result = viewModel.submit()
-                            if (result.isSuccess) {
-                                snackbarHostState.showSnackbar("그룹 생성 완료")
-                                navController.popBackStack()
-                            } else {
-                                snackbarHostState.showSnackbar(
-                                    result.exceptionOrNull()?.message ?: "그룹 생성 실패"
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        Color(0xFFD6F8E6).copy(alpha = 0.6f),
+                                        Color.White.copy(alpha = 0.98f)
+                                    )
                                 )
+                            )
+                            .padding(horizontal = 18.dp, vertical = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Text(
+                            "과목을 묶어서 관리할 그룹을 만들어 보세요.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        OutlinedTextField(
+                            value = state.name,
+                            onValueChange = { viewModel.updateName(it) },
+                            label = { Text("그룹 이름") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = state.description,
+                            onValueChange = { viewModel.updateDescription(it) },
+                            label = { Text("설명 (선택)") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            maxLines = 5
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        val result = viewModel.submit()
+                                        if (result.isSuccess) {
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("그룹 생성 완료")
+                                            }
+                                            navController.popBackStack()
+                                        } else {
+                                            snackbarHostState.showSnackbar(
+                                                result.exceptionOrNull()?.message ?: "그룹 생성 실패"
+                                            )
+                                        }
+                                    }
+                                },
+                                enabled = !state.submitting && state.name.isNotBlank(),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                if (state.submitting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier
+                                            .height(18.dp)
+                                            .padding(end = 8.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                }
+                                Text(text = if (state.submitting) "생성 중..." else "그룹 생성")
+                            }
+
+                            OutlinedButton(
+                                onClick = { navController.popBackStack() },
+                                enabled = !state.submitting,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("취소")
                             }
                         }
-                    },
-                    enabled = !state.submitting && state.name.isNotBlank(),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if (state.submitting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .height(18.dp)
-                                .padding(end = 8.dp),
-                            strokeWidth = 2.dp
-                        )
                     }
-                    Text(text = if (state.submitting) "생성 중..." else "그룹 생성")
-                }
-
-                OutlinedButton(
-                    onClick = { navController.popBackStack() },
-                    enabled = !state.submitting,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("취소")
                 }
             }
         }

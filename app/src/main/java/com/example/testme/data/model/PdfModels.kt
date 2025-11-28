@@ -25,7 +25,11 @@ data class PdfListResponse(
 @Serializable
 data class PdfResponse(
     @SerialName("success") val success: Boolean,
-    @SerialName("pdf") val pdf: PdfData
+    @SerialName("file_id") val file_id: String,
+    @SerialName("original_filename") val original_filename: String,
+    @SerialName("file_url") val file_url: String,
+    @SerialName("uploaded_at") val uploaded_at: String,
+    @SerialName("size") val size: Int
 )
 
 @Serializable
@@ -36,6 +40,5 @@ data class PdfDeleteResponse(
 
 @Serializable
 data class PdfDownloadResponse(
-    @SerialName("success") val success: Boolean,
     @SerialName("download_url") val downloadUrl: String
 )

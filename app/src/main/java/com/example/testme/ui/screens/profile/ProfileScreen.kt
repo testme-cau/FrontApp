@@ -18,6 +18,9 @@ import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,8 +33,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -42,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -51,6 +56,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.testme.data.api.ApiService
+import com.example.testme.data.model.LanguageListResponse
+import com.example.testme.ui.screens.home.SoftBlobBackground
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.auth.userProfileChangeRequest
@@ -91,8 +98,8 @@ class ProfileViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(loadingLanguages = true)
             try {
-                val response = apiService.getSupportedLanguages()
-                val list: List<String> = response.languages.map{it.code}
+                val response: LanguageListResponse = apiService.getSupportedLanguages()
+                val list: List<String> = response.languages.map { it.code }
                 val current = _uiState.value.language.ifBlank { "ko" }
                 val safeLang = if (list.contains(current)) current else list.firstOrNull() ?: "ko"
                 _uiState.value = _uiState.value.copy(
@@ -157,7 +164,6 @@ class ProfileViewModel(
             if (task.isSuccessful) {
                 viewModelScope.launch {
                     try {
-                        // 여기에 백엔드 프로필 갱신 API 연결 (언어 저장 등)
                         // apiService.updateUserProfile("Bearer $token", UserProfileUpdateRequest(language = newLang))
                     } catch (_: Exception) {
                     } finally {
@@ -211,6 +217,9 @@ fun ProfileScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var lastError by remember { mutableStateOf<String?>(null) }
 
+    val brandPrimary = Color(0xFF5BA27F)
+    val brandPrimaryDeep = Color(0xFF1E4032)
+
     LaunchedEffect(uiState.errorMessage) {
         if (uiState.errorMessage != null && uiState.errorMessage != lastError) {
             snackbarHostState.showSnackbar(uiState.errorMessage ?: "")
@@ -219,9 +228,18 @@ fun ProfileScreen(
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(
-                title = { Text("프로필") },
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "프로필",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            color = brandPrimaryDeep
+                        )
+                    )
+                },
                 actions = {
                     if (uiState.isEditing) {
                         IconButton(
@@ -248,111 +266,139 @@ fun ProfileScreen(
                         }
                     }
                 },
-                scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                ),
+                scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
+                    rememberTopAppBarState()
+                )
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .padding(top = 16.dp, bottom = 12.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .height(80.dp)
-                        .fillMaxWidth(fraction = 0.0f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "프로필 아이콘",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.height(48.dp)
-                    )
-                }
-
-                if (uiState.isEditing) {
-                    OutlinedTextField(
-                        value = uiState.displayName,
-                        onValueChange = { viewModel.updateDisplayName(it) },
-                        label = { Text("이름") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        singleLine = true
-                    )
-                } else {
-                    Text(
-                        text = uiState.displayName.ifBlank { "이름 없음" },
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 4.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ProfileRow(
-                        label = "이메일",
-                        value = uiState.email.ifBlank { "알 수 없음" }
-                    )
-
-                    if (uiState.isEditing) {
-                        LanguageDropdown(
-                            label = "언어",
-                            selected = uiState.language.ifBlank { "ko" },
-                            options = uiState.availableLanguages.ifEmpty { listOf("ko", "en") },
-                            loading = uiState.loadingLanguages,
-                            onSelect = { viewModel.updateLanguage(it) }
-                        )
-                    } else {
-                        ProfileRow(
-                            label = "언어",
-                            value = uiState.language.ifBlank { "ko" }.uppercase()
-                        )
-                    }
-                }
-            }
+            SoftBlobBackground()
 
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Button(
-                    onClick = {
-                        viewModel.logout()
-                        navController.navigate("login") {
-                            popUpTo(navController.graph.startDestinationId) {
-                                inclusive = true
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.96f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    shape = CardDefaults.shape
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .height(80.dp)
+                                .fillMaxWidth(fraction = 0f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "프로필 아이콘",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.height(48.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        if (uiState.isEditing) {
+                            OutlinedTextField(
+                                value = uiState.displayName,
+                                onValueChange = { viewModel.updateDisplayName(it) },
+                                label = { Text("이름") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                singleLine = true
+                            )
+                        } else {
+                            Text(
+                                text = uiState.displayName.ifBlank { "이름 없음" },
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            ProfileRow(
+                                label = "이메일",
+                                value = uiState.email.ifBlank { "알 수 없음" }
+                            )
+
+                            if (uiState.isEditing) {
+                                LanguageDropdown(
+                                    label = "언어",
+                                    selected = uiState.language.ifBlank { "ko" },
+                                    options = uiState.availableLanguages.ifEmpty { listOf("ko", "en") },
+                                    loading = uiState.loadingLanguages,
+                                    onSelect = { viewModel.updateLanguage(it) }
+                                )
+                            } else {
+                                ProfileRow(
+                                    label = "언어",
+                                    value = uiState.language.ifBlank { "ko" }.uppercase()
+                                )
                             }
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                    }
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Logout,
-                        contentDescription = "로그아웃"
-                    )
-                    Spacer(modifier = Modifier.weight(1f, false))
-                    Text("로그아웃")
+                    Button(
+                        onClick = {
+                            viewModel.logout()
+                            navController.navigate("login") {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.large,
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White.copy(alpha = 0.95f),
+                            contentColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = "로그아웃"
+                        )
+                        Spacer(modifier = Modifier.weight(1f, false))
+                        Text("로그아웃")
+                    }
                 }
             }
         }
@@ -396,14 +442,19 @@ private fun LanguageDropdown(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(4.dp))
+
         Box {
             OutlinedTextField(
                 value = if (loading) "언어 로딩 중..." else selected.uppercase(),
                 onValueChange = {},
                 readOnly = true,
                 enabled = !loading,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .matchParentSize()
                     .clickable(enabled = !loading) {
                         expanded = true
                     }

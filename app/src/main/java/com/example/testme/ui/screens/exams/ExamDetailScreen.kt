@@ -1,324 +1,69 @@
 package com.example.testme.ui.screens.exam
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.ExamDetailResponse
 import com.example.testme.data.model.ExamResultResponse
+import com.example.testme.data.model.ExamQuestion
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Summarize
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.rememberCoroutineScope
+import com.example.testme.ui.screens.home.SoftBlobBackground
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ExamDetailScreen(
-    navController: NavController,
-    apiService: ApiService,
-    token: String,
-    subjectId: String,
-    examId: String,
-    viewModel: ExamDetailViewModel = viewModel(
-        factory = ExamDetailViewModelFactory(apiService, token, subjectId, examId)
-    )
-) {
-    val uiState by viewModel.uiState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+data class ExamDetailHeaderUi(
+    val title: String,
+    val scoreLabel: String,           // "10.0 / 100.0점"
+    val percentageLabel: String,      // "10.0%"
+    val difficultyLabel: String,      // "쉬움/보통/어려움/..."
+    val languageLabel: String,        // "ko"/"en"/"언어 미지정"
+    val metaLabel: String,            // "문항 5개 · 생성일 ..."
+    val overallFeedback: String,      // 없으면 ""
+    val strengths: List<String>,
+    val weaknesses: List<String>,
+    val studyRecommendations: List<String>
+)
 
-    LaunchedEffect(Unit) {
-        viewModel.loadDetail()
-        viewModel.loadResult()
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = uiState.title.ifBlank { "시험 상세" }
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            viewModel.loadDetail()
-                            viewModel.loadResult()
-                        },
-                        enabled = !uiState.loadingDetail && !uiState.loadingResult
-                    ) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "새로고침")
-                    }
-                },
-                scrollBehavior = androidx.compose.material3.TopAppBarDefaults.pinnedScrollBehavior(
-                    rememberTopAppBarState()
-                )
-            )
-        },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { padding ->
-        if (uiState.loadingDetail && uiState.detail == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ExamMetaCard(uiState)
-
-                Button(
-                    onClick = {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                "여기에서 실제 시험 응시 UI를 구현하면 됩니다."
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Summarize,
-                        contentDescription = null
-                    )
-                    Spacer(modifier = Modifier.height(0.dp))
-                    Text("시험 풀기 (UI 구현 예정)")
-                }
-
-                ExamResultCard(uiState)
-
-                Spacer(modifier = Modifier.height(48.dp))
-            }
-        }
-
-        if (uiState.errorMessage != null) {
-            LaunchedEffect(uiState.errorMessage) {
-                snackbarHostState.showSnackbar(uiState.errorMessage ?: "오류가 발생했습니다.")
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExamMetaCard(ui: ExamDetailUiState) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = ui.title.ifBlank { "시험 #${ui.examId.takeLast(6)}" },
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.SemiBold
-                )
-            )
-            Text(
-                text = "시험 ID: ${ui.examId}",
-                style = MaterialTheme.typography.bodySmall
-            )
-            if (ui.numQuestions != null) {
-                Text(
-                    text = "문항 수: ${ui.numQuestions}문항",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            if (!ui.language.isNullOrBlank() || !ui.difficulty.isNullOrBlank()) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (!ui.language.isNullOrBlank()) {
-                        Text(
-                            text = "언어: ${ui.language}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    if (!ui.difficulty.isNullOrBlank()) {
-                        Text(
-                            text = "난이도: ${ui.difficulty}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-            if (!ui.status.isNullOrBlank()) {
-                Text(
-                    text = "상태: ${ui.status}",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            if (!ui.createdAt.isNullOrBlank()) {
-                Text(
-                    text = "생성일: ${ui.createdAt}",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExamResultCard(ui: ExamDetailUiState) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "채점 결과",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold
-                    )
-                )
-                if (ui.loadingResult) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.height(18.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    OutlinedButton(
-                        onClick = { ui.onRefreshResult?.invoke() }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null
-                        )
-                        Spacer(modifier = Modifier.height(0.dp))
-                        Text("결과 새로고침")
-                    }
-                }
-            }
-
-            when {
-                ui.loadingResult && ui.result == null -> {
-                    Text(
-                        text = "결과를 불러오는 중입니다...",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                ui.result == null -> {
-                    Text(
-                        text = "아직 제출된 결과가 없습니다.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                else -> {
-                    if (ui.score != null && ui.totalScore != null) {
-                        Text(
-                            text = "점수: ${ui.score} / ${ui.totalScore}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    if (ui.correctCount != null && ui.totalCount != null) {
-                        Text(
-                            text = "정답 ${ui.correctCount}문항 / 총 ${ui.totalCount}문항",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    if (!ui.summary.isNullOrBlank()) {
-                        Text(
-                            text = ui.summary ?: "",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
+data class QuestionResultUi(
+    val index: Int,
+    val questionText: String,
+    val typeLabel: String,
+    val pointsLabel: String?,         // "배점 13점" (없을 수도)
+    val isCorrect: Boolean?,          // 정/오/없음
+    val scoreLabel: String?,          // "0 / 13점"
+    val userAnswerLabel: String?,     // 내 답
+    val correctAnswerLabel: String?,  // 정답
+    val modelAnswer: String?,         // 모범답안
+    val feedback: String?             // 피드백
+)
 
 data class ExamDetailUiState(
-    val loadingDetail: Boolean = false,
-    val loadingResult: Boolean = false,
-    val detail: ExamDetailResponse? = null,
-    val result: ExamResultResponse? = null,
-    val examId: String = "",
-    val title: String = "",
-    val numQuestions: Int? = null,
-    val language: String? = null,
-    val difficulty: String? = null,
-    val status: String? = null,
-    val createdAt: String? = null,
-    val score: Int? = null,
-    val totalScore: Double? = null,
-    val correctCount: Int? = null,
-    val totalCount: Int? = null,
-    val summary: String? = null,
+    val loading: Boolean = false,
     val errorMessage: String? = null,
-    val onRefreshResult: (() -> Unit)? = null
+    val header: ExamDetailHeaderUi? = null,
+    val questions: List<QuestionResultUi> = emptyList()
 )
 
 class ExamDetailViewModel(
@@ -328,72 +73,130 @@ class ExamDetailViewModel(
     private val examId: String
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(
-        ExamDetailUiState(
-            examId = examId,
-            onRefreshResult = { loadResult() }
-        )
-    )
+    private val _uiState = MutableStateFlow(ExamDetailUiState())
     val uiState: StateFlow<ExamDetailUiState> = _uiState
 
     fun loadDetail() {
+        if (_uiState.value.loading) return
+
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(loadingDetail = true, errorMessage = null)
+            _uiState.value = _uiState.value.copy(loading = true, errorMessage = null)
             try {
-                val response: ExamDetailResponse =
+                val examDetail: ExamDetailResponse =
                     apiService.getExamDetail("Bearer $token", subjectId, examId)
+                val exam = examDetail.exam
 
-                // 실제 ExamDetailResponse 구조에 맞게 아래 필드를 매핑해서 사용하면 된다
-                val exam = response.exam
-
-                _uiState.value = _uiState.value.copy(
-                    loadingDetail = false,
-                    detail = response,
-                    title = exam.title ?: "",
-                    numQuestions = exam.numQuestions,
-                    language = exam.language,
-                    difficulty = exam.difficulty,
-                    status = exam.status,
-                    createdAt = exam.createdAt
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    loadingDetail = false,
-                    errorMessage = e.message ?: "시험 정보를 불러오지 못했습니다."
-                )
-            }
-        }
-    }
-
-    fun loadResult() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(loadingResult = true, errorMessage = null)
-            try {
-                val response: ExamResultResponse =
+                val result: ExamResultResponse =
                     apiService.getExamResult("Bearer $token", subjectId, examId)
+                val submission = result.submission
+                val grading = submission.gradingResult
+                    ?: throw IllegalStateException("채점 결과가 없습니다.")
 
-                val totalCount = response.questions.size
-                val correctCount = response.questions.count { q ->
-                    q.userAnswer != null &&
-                            q.correctAnswer != null &&
-                            q.userAnswer == q.correctAnswer
+                val scoreLabel = String.format(
+                    "%.1f / %.1f점",
+                    grading.totalScore,
+                    grading.maxScore
+                )
+                val percentageLabel = String.format("%.1f%%", grading.percentage)
+
+                val difficultyLabel: String = when (exam.difficulty) {
+                    "easy" -> "쉬움"
+                    "medium" -> "보통"
+                    "hard" -> "어려움"
+                    else -> exam.difficulty
                 }
 
-                val totalScore = 100.0
-                val summaryText = "총 ${totalCount}문제 중 ${correctCount}개 정답, 점수 ${response.score}점"
+                val languageLabel: String = exam.language ?: "언어 미지정"
+                val metaLabel = "문항 ${exam.numQuestions}개 · 생성일 ${exam.createdAt}"
 
-                _uiState.value = _uiState.value.copy(
-                    loadingResult = false,
-                    result = response,
-                    score = response.score,
-                    totalScore = totalScore,
-                    correctCount = correctCount,
-                    totalCount = totalCount,
-                    summary = summaryText
+                val header = ExamDetailHeaderUi(
+                    title = exam.title,
+                    scoreLabel = scoreLabel,
+                    percentageLabel = percentageLabel,
+                    difficultyLabel = difficultyLabel,
+                    languageLabel = languageLabel,
+                    metaLabel = metaLabel,
+                    overallFeedback = grading.overallFeedback.orEmpty(),
+                    strengths = grading.strengths,
+                    weaknesses = grading.weaknesses,
+                    studyRecommendations = grading.studyRecommendations
                 )
+
+                // ---------- 문항별 ----------
+                val answersByQuestionId = submission.answers.associateBy { it.questionId }
+                val questionsById = exam.questions.associateBy { it.id }
+
+                val questionResults = grading.questionResults.mapIndexed { idx, qr ->
+                    val qDetail: ExamQuestion? = questionsById[qr.questionId]
+
+                    val typeLabel = when (qDetail?.type) {
+                        "multiple_choice" -> "객관식"
+                        "short_answer" -> "단답형"
+                        "essay" -> "서술형"
+                        else -> qDetail?.type ?: "기타"
+                    }
+
+                    val maxPoints = qr.maxPoints ?: qDetail?.points
+                    val pointsLabel = maxPoints?.let { "배점 ${it.toInt()}점" }
+
+                    val options = qDetail?.options ?: emptyList()
+
+                    // 제출 답
+                    val rawUserAnswer: String? = answersByQuestionId[qr.questionId]?.answer
+                    val userAnswerLabel: String? = if (rawUserAnswer != null && options.isNotEmpty()) {
+                        val idxOpt = rawUserAnswer.toIntOrNull()
+                        if (idxOpt != null && idxOpt in options.indices) {
+                            options[idxOpt]
+                        } else {
+                            rawUserAnswer
+                        }
+                    } else {
+                        rawUserAnswer
+                    }
+
+                    // 정답 텍스트
+                    val correctAnswerLabel: String? = when {
+                        qDetail?.correctAnswer != null && options.isNotEmpty() -> {
+                            val idxOpt = qDetail.correctAnswer.toIntOrNull()
+                            if (idxOpt != null && idxOpt in options.indices) {
+                                options[idxOpt]
+                            } else {
+                                qDetail.correctAnswer
+                            }
+                        }
+                        qDetail?.correctAnswer != null -> qDetail.correctAnswer
+                        else -> null
+                    }
+
+                    val scoreLabelPerQuestion: String? =
+                        if (qr.score != null && maxPoints != null) {
+                            "${qr.score.toInt()} / ${maxPoints.toInt()}점"
+                        } else null
+
+                    QuestionResultUi(
+                        index = idx + 1,
+                        questionText = qDetail?.question ?: "문항 내용을 불러오지 못했습니다.",
+                        typeLabel = typeLabel,
+                        pointsLabel = pointsLabel,
+                        isCorrect = qr.isCorrect,
+                        scoreLabel = scoreLabelPerQuestion,
+                        userAnswerLabel = userAnswerLabel,
+                        correctAnswerLabel = correctAnswerLabel,
+                        modelAnswer = (qr.modelAnswer ?: qDetail?.modelAnswer),
+                        feedback = qr.feedback
+                    )
+                }
+
+                _uiState.value = ExamDetailUiState(
+                    loading = false,
+                    errorMessage = null,
+                    header = header,
+                    questions = questionResults
+                )
+
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    loadingResult = false,
+                    loading = false,
                     errorMessage = e.message ?: "시험 결과를 불러오지 못했습니다."
                 )
             }
@@ -413,5 +216,480 @@ class ExamDetailViewModelFactory(
             return ExamDetailViewModel(apiService, token, subjectId, examId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExamDetailScreen(
+    navController: NavController,
+    apiService: ApiService,
+    token: String,
+    subjectId: String,
+    examId: String,
+    subjectColor: Color = MaterialTheme.colorScheme.primary,
+    viewModel: ExamDetailViewModel = viewModel(
+        factory = ExamDetailViewModelFactory(apiService, token, subjectId, examId)
+    )
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadDetail()
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { msg ->
+            scope.launch {
+                snackbarHostState.showSnackbar(message = msg)
+            }
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.Transparent,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "시험 결과",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 0.5.sp
+                        )
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "뒤로가기"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = Color(0xFF1E4032),
+                    navigationIconContentColor = Color(0xFF1E4032)
+                )
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            SoftBlobBackground()
+
+            when {
+                uiState.loading && uiState.header == null -> {
+                    // 처음 로딩일 때는 중앙 로딩 카드
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            tonalElevation = 6.dp,
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 3.dp,
+                                    color = subjectColor
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
+                                    Text(
+                                        text = "시험 결과 분석 중...",
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    )
+                                    Text(
+                                        text = "AI가 채점 결과를 정리하고 있어요.",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                uiState.header == null && uiState.errorMessage != null -> {
+                    // 치명적 에러
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                uiState.errorMessage ?: "시험 결과를 불러오지 못했습니다.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            OutlinedButton(
+                                onClick = { viewModel.loadDetail() },
+                                shape = RoundedCornerShape(999.dp)
+                            ) {
+                                Text("다시 시도")
+                            }
+                        }
+                    }
+                }
+
+                uiState.header == null -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("표시할 시험 결과가 없습니다.")
+                    }
+                }
+
+                else -> {
+                    val header = uiState.header!!
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        item {
+                            ExamResultSummaryCard(
+                                header = header,
+                                accentColor = subjectColor
+                            )
+                        }
+
+                        items(uiState.questions) { q ->
+                            QuestionResultCard(
+                                result = q,
+                                accentColor = subjectColor
+                            )
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(72.dp))
+                        }
+                    }
+
+                    if (uiState.loading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp, end = 16.dp),
+                            contentAlignment = Alignment.TopEnd
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = subjectColor.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExamResultSummaryCard(
+    header: ExamDetailHeaderUi,
+    accentColor: Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        tonalElevation = 8.dp,
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.25f)),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+    ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    brush = Brush.linearGradient(
+                        listOf(
+                            accentColor.copy(alpha = 0.16f),
+                            Color.White.copy(alpha = 0.9f)
+                        )
+                    )
+                )
+                .padding(18.dp)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = header.title,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF0F241B)
+                    )
+                )
+
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = header.scoreLabel,
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF1E4032)
+                        )
+                    )
+                    ResultPill(
+                        label = header.percentageLabel,
+                        color = accentColor
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SmallChip("난이도 ${header.difficultyLabel}")
+                    SmallChip(header.languageLabel)
+                }
+
+                Text(
+                    text = header.metaLabel,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Color(0xFF1E4032).copy(alpha = 0.75f)
+                    )
+                )
+
+                if (header.overallFeedback.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    SectionTitle("총평", accentColor)
+                    Text(
+                        text = header.overallFeedback,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                if (header.strengths.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    SectionTitle("강점", accentColor)
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        header.strengths.forEach { s ->
+                            Text("• $s", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+
+                if (header.weaknesses.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    SectionTitle("보완할 점", accentColor)
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        header.weaknesses.forEach { w ->
+                            Text("• $w", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+
+                if (header.studyRecommendations.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    SectionTitle("추천 학습 방향", accentColor)
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        header.studyRecommendations.forEach { r ->
+                            Text("• $r", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResultPill(label: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .background(
+                brush = Brush.horizontalGradient(
+                    listOf(color.copy(alpha = 0.9f), color.copy(alpha = 0.6f))
+                ),
+                shape = RoundedCornerShape(999.dp)
+            )
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium.copy(
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
+            )
+        )
+    }
+}
+
+@Composable
+private fun SectionTitle(title: String, color: Color) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelMedium.copy(
+            fontWeight = FontWeight.SemiBold,
+            color = color
+        )
+    )
+}
+
+@Composable
+private fun SmallChip(text: String) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = Color.White.copy(alpha = 0.7f),
+        border = BorderStroke(1.dp, Color(0xFF1E4032).copy(alpha = 0.08f))
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            text = text,
+            style = MaterialTheme.typography.labelSmall
+        )
+    }
+}
+
+@Composable
+private fun QuestionResultCard(
+    result: QuestionResultUi,
+    accentColor: Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        tonalElevation = 4.dp,
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.18f)),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Q${result.index}. ${result.typeLabel}",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                    result.pointsLabel?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = Color(0xFF1E4032).copy(alpha = 0.7f)
+                            )
+                        )
+                    }
+                }
+
+                result.isCorrect?.let { isCorrect ->
+                    val label = if (isCorrect) "정답" else "오답"
+                    val color = if (isCorrect) accentColor else MaterialTheme.colorScheme.error
+
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color.copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(999.dp)
+                            )
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = color
+                            )
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = result.questionText,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.SemiBold
+                )
+            )
+
+            result.scoreLabel?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1E4032)
+                    )
+                )
+            }
+
+            result.userAnswerLabel?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                SectionTitle("내 답변", accentColor)
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            result.correctAnswerLabel?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                SectionTitle("정답", accentColor)
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            result.modelAnswer?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                SectionTitle("모범 답안", accentColor)
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            result.feedback?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "피드백",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = accentColor
+                    )
+                )
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
     }
 }

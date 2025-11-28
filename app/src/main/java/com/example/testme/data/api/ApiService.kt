@@ -1,10 +1,11 @@
 package com.example.testme.data.api
 
+import com.example.testme.data.model.ExamAnswerPayload
 import com.example.testme.data.model.ExamDetailResponse
 import com.example.testme.data.model.ExamListResponse
 import com.example.testme.data.model.ExamResultResponse
-import com.example.testme.data.model.ExamSubmitRequest
 import com.example.testme.data.model.ExamSubmitResponse
+import com.example.testme.data.model.GenerateExamRequest
 import com.example.testme.data.model.JobListResponse
 import com.example.testme.data.model.JobResponse
 import com.example.testme.data.model.LanguageListResponse
@@ -31,13 +32,29 @@ import okhttp3.MultipartBody
 import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
 import retrofit2.http.*
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import java.util.concurrent.TimeUnit
+
+private fun createHttpClient(): OkHttpClient {
+    val logging = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+
+    return OkHttpClient.Builder()
+        .addInterceptor(logging)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+}
+
 
 interface ApiService {
 
     companion object {
 
-        //private const val BASE_URL = "http://10.0.2.2:5000/"
-        private const val BASE_URL="https://testmeapi.jdn.kr/"
+        private const val BASE_URL = "http://10.0.2.2:5000/"
+        //private const val BASE_URL="https://testmeapi.jdn.kr/"
 
         fun create(): ApiService {
 
@@ -50,6 +67,7 @@ interface ApiService {
 
             val retrofit = Retrofit.Builder()
                 .baseUrl(BASE_URL)
+                .client(createHttpClient())
                 .addConverterFactory(json.asConverterFactory(contentType))
                 .build()
 
@@ -182,7 +200,7 @@ interface ApiService {
     suspend fun generateExam(
         @Header("Authorization") token: String,
         @Path("subject_id") subjectId: String,
-        @Body body: Map<String, @JvmSuppressWildcards Any>
+        @Body body: GenerateExamRequest
     ): JobResponse
 
     @DELETE("/api/subjects/{subject_id}/exams/{exam_id}")
@@ -190,7 +208,7 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("subject_id") subjectId: String,
         @Path("exam_id") examId: String
-    ): JobResponse
+    ): retrofit2.Response<Unit>
 
     @GET("/api/subjects/{subject_id}/exams")
     suspend fun getExamsBySubject(
@@ -210,7 +228,7 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("subject_id") subjectId: String,
         @Path("exam_id") examId: String,
-        @Body body: ExamSubmitRequest
+        @Body body: List<ExamAnswerPayload>
     ): ExamSubmitResponse
 
 

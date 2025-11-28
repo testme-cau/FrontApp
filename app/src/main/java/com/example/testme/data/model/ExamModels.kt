@@ -3,22 +3,20 @@ package com.example.testme.data.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// -------------------------------------------------------------
-// Exam 기본 정보
-// -------------------------------------------------------------
 @Serializable
 data class ExamData(
     @SerialName("exam_id") val examId: String,
     @SerialName("subject_id") val subjectId: String,
-    @SerialName("title") val title: String,               // ← 반드시 필요
+    @SerialName("title") val title: String,
     @SerialName("num_questions") val numQuestions: Int,
     @SerialName("difficulty") val difficulty: String,
-    @SerialName("ai_provider") val aiProvider: String,
-    @SerialName("ai_model") val aiModel: String,
-    @SerialName("language") val language: String,
+    @SerialName("ai_provider") val aiProvider: String? = null,
+    @SerialName("ai_model") val aiModel: String? = null,
+    @SerialName("language") val language: String? = null,
     @SerialName("status") val status: String,
     @SerialName("created_at") val createdAt: String,
-    @SerialName("updated_at") val updatedAt: String? = null
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("questions") val questions: List<ExamQuestion> = emptyList()
 )
 
 // -------------------------------------------------------------
@@ -38,22 +36,30 @@ data class ExamListResponse(
 data class ExamDetailResponse(
     @SerialName("success") val success: Boolean,
     @SerialName("exam") val exam: ExamData,
-    @SerialName("questions") val questions: List<ExamQuestion>
 )
 
 @Serializable
 data class ExamQuestion(
-    @SerialName("index") val index: Int,
+    @SerialName("id") val id: Int,
     @SerialName("question") val question: String,
-    @SerialName("options") val options: List<String>,
-    @SerialName("correct_answer") val correctAnswer: Int? = null,
-    @SerialName("question_id") val questionId: Int? = null
+    @SerialName("options") val options: List<String>? = null,
+
+    @SerialName("correct_answer") val correctAnswer: String? = null,
+
+    @SerialName("type") val type: String? = null,
+    @SerialName("points") val points: Double? = null,
+    @SerialName("topic") val topic: String? = null,
+    @SerialName("model_answer") val modelAnswer: String? = null,
+    @SerialName("keywords") val keywords: List<String>? = null,
+    @SerialName("scoring_rubric") val scoringRubric: List<ScoringRubricItem>? = null
 )
 
+@Serializable
+data class ScoringRubricItem(
+    @SerialName("points") val points: Double,
+    @SerialName("criterion") val criterion: String
+)
 
-// -------------------------------------------------------------
-// Exam 생성
-// -------------------------------------------------------------
 @Serializable
 data class ExamResponse(
     @SerialName("success") val success: Boolean,
@@ -66,10 +72,6 @@ data class ExamAnswerPayload(
     @SerialName("question_id") val questionId: Int,
     @SerialName("answer") val answer: String
 )
-@Serializable
-data class ExamSubmitRequest(
-    @SerialName("answers") val answers: List<ExamAnswerPayload>
-)
 
 @Serializable
 data class ExamSubmitResponse(
@@ -78,26 +80,58 @@ data class ExamSubmitResponse(
     @SerialName("job") val job: JobData
 )
 
-
-
-// -------------------------------------------------------------
-// Exam Result (grading)
-// -------------------------------------------------------------
-@Serializable
-data class ExamResultQuestion(
-    @SerialName("index") val index: Int,
-    @SerialName("question") val question: String,
-    @SerialName("user_answer") val userAnswer: Int?,
-    @SerialName("correct_answer") val correctAnswer: Int?
-)
-
 @Serializable
 data class ExamResultResponse(
     @SerialName("success") val success: Boolean,
-    @SerialName("exam_id") val examId: String,
+    @SerialName("submission") val submission: ExamSubmissionData
+)
+
+@Serializable
+data class GenerateExamRequest(
+    @SerialName("num_questions") val numQuestions: Int,
+    @SerialName("difficulty") val difficulty: String,
+    @SerialName("ai_provider") val aiProvider: String,
+    @SerialName("ai_model") val aiModel: String,
+    @SerialName("language") val language: String,
+    @SerialName("pdf_ids") val pdfIds: List<String>
+)
+
+@Serializable
+data class ExamSubmissionData(
     @SerialName("subject_id") val subjectId: String,
-    @SerialName("score") val score: Int,
-    @SerialName("questions") val questions: List<ExamResultQuestion>,
-    @SerialName("percentage") val percentage: Int? = null,
+    @SerialName("exam_id") val examId: String? = null,
+    @SerialName("grading_result") val gradingResult: GradingResult? = null,
+    @SerialName("answers") val answers: List<SubmittedAnswer> = emptyList(),
     @SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class GradingResult(
+    @SerialName("question_results")
+    val questionResults: List<QuestionGradingResult> = emptyList(),
+
+    @SerialName("max_score") val maxScore: Double,
+    @SerialName("total_score") val totalScore: Double,
+    @SerialName("percentage") val percentage: Double,
+
+    @SerialName("overall_feedback") val overallFeedback: String? = null,
+    @SerialName("weaknesses") val weaknesses: List<String> = emptyList(),
+    @SerialName("strengths") val strengths: List<String> = emptyList(),
+    @SerialName("study_recommendations") val studyRecommendations: List<String> = emptyList()
+)
+
+@Serializable
+data class QuestionGradingResult(
+    @SerialName("question_id") val questionId: Int,
+    @SerialName("is_correct") val isCorrect: Boolean? = null,
+    @SerialName("score") val score: Double? = null,
+    @SerialName("max_points") val maxPoints: Double? = null,
+    @SerialName("feedback") val feedback: String? = null,
+    @SerialName("model_answer") val modelAnswer: String? = null
+)
+
+@Serializable
+data class SubmittedAnswer(
+    @SerialName("question_id") val questionId: Int,
+    @SerialName("answer") val answer: String
 )

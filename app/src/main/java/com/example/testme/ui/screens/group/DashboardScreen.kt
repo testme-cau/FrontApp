@@ -1,6 +1,7 @@
 package com.example.testme.ui.screens.group
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -20,6 +22,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -28,12 +31,13 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -44,6 +48,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -56,7 +61,9 @@ import com.example.testme.data.model.SubjectData
 import com.example.testme.data.model.SubjectListResponse
 import com.example.testme.data.model.group.GroupData
 import com.example.testme.data.model.group.GroupListResponse
+import com.example.testme.data.model.group.GroupUpdateRequest
 import com.example.testme.ui.navigation.Screen
+import com.example.testme.ui.screens.home.SoftBlobBackground
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -82,6 +89,47 @@ class DashboardViewModel(
     fun loadAll(forceRefresh: Boolean = false) {
         loadSubjects(forceRefresh)
         loadGroups(forceRefresh)
+    }
+
+    fun renameGroup(groupId: String, newName: String) {
+        viewModelScope.launch {
+            try {
+                val current = _uiState.value
+                val target = current.groups.firstOrNull { it.groupId == groupId } ?: return@launch
+
+                val req = GroupUpdateRequest(
+                    name = newName,
+                    description = target.description,
+                    color = target.color
+                )
+
+                apiService.updateGroup("Bearer $token", groupId, req)
+                loadGroups(forceRefresh = true)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = e.message ?: "그룹 수정에 실패했습니다."
+                )
+            }
+        }
+    }
+
+    fun deleteGroup(groupId: String) {
+        viewModelScope.launch {
+            try {
+                apiService.deleteGroup("Bearer $token", groupId)
+
+                val current = _uiState.value
+                _uiState.value = current.copy(
+                    groups = current.groups.filterNot { it.groupId == groupId },
+                    selectedGroupId = if (current.selectedGroupId == groupId) null else current.selectedGroupId,
+                    subjects = current.subjects.filterNot { it.groupId == groupId }
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = e.message ?: "그룹 삭제에 실패했습니다."
+                )
+            }
+        }
     }
 
     fun loadSubjects(forceRefresh: Boolean = false) {
@@ -135,10 +183,11 @@ class DashboardViewModel(
         val id = _uiState.value.deletingSubjectId ?: return
         viewModelScope.launch {
             try {
-                // ApiService에 맞게 실제 삭제 API 연결
-                // apiService.deleteSubject("Bearer $token", id)
-                _uiState.value = _uiState.value.copy(
-                    subjects = _uiState.value.subjects.filterNot { it.subjectId == id },
+                apiService.deleteSubject("Bearer $token", id)
+
+                val current = _uiState.value
+                _uiState.value = current.copy(
+                    subjects = current.subjects.filterNot { it.subjectId == id },
                     deletingSubjectId = null
                 )
             } catch (e: Exception) {
@@ -196,19 +245,32 @@ fun DashboardScreen(
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(
-                title = { Text("대시보드") },
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "대시보드",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
+                        )
+                    )
+                },
                 actions = {
                     IconButton(
                         onClick = { viewModel.loadAll(forceRefresh = true) },
                         enabled = !uiState.loadingSubjects && !uiState.loadingGroups
                     ) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "새로고침")
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "새로고침",
+                            tint = Color(0xFF1E4032)
+                        )
                     }
                 },
-                scrollBehavior = androidx.compose.material3.TopAppBarDefaults.pinnedScrollBehavior(
-                    rememberTopAppBarState()
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = Color(0xFF1E4032)
                 )
             )
         },
@@ -217,115 +279,138 @@ fun DashboardScreen(
             FloatingActionButton(
                 onClick = { navController.navigate(Screen.NewSubject.route) }
             ) {
-                Text(text = "새 과목 생성")
+                Text(text = "＋", style = MaterialTheme.typography.titleMedium)
             }
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            GroupFilterDropdown(
-                groups = uiState.groups,
-                loading = uiState.loadingGroups,
-                selectedGroupId = uiState.selectedGroupId,
-                onSelectGroup = { viewModel.selectGroup(it) },
-                onCreateNewGroup = {
-                    navController.navigate(Screen.NewGroup.route)
-                }
-            )
+            SoftBlobBackground()
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            when {
-                uiState.loadingSubjects && filteredSubjects.isEmpty() -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GroupFilterDropdown(
+                    groups = uiState.groups,
+                    loading = uiState.loadingGroups,
+                    selectedGroupId = uiState.selectedGroupId,
+                    onSelectGroup = { viewModel.selectGroup(it) },
+                    onCreateNewGroup = {
+                        navController.navigate(Screen.NewGroup.route)
+                    },
+                    onRenameGroup = { groupId, newName ->
+                        viewModel.renameGroup(groupId, newName)
+                    },
+                    onDeleteGroup = { groupId ->
+                        viewModel.deleteGroup(groupId)
                     }
-                }
+                )
 
-                filteredSubjects.isEmpty() -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "등록된 과목이 없습니다.")
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(onClick = { navController.navigate(Screen.NewSubject.route) }) {
-                                Text("첫 과목 만들기")
+                when {
+                    uiState.loadingSubjects && filteredSubjects.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    filteredSubjects.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Card(
+                                shape = RoundedCornerShape(24.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(20.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(text = "등록된 과목이 없습니다.")
+                                    Button(onClick = { navController.navigate(Screen.NewSubject.route) }) {
+                                        Text("첫 과목 만들기")
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(filteredSubjects) { subject ->
+                                SubjectCard(
+                                    subject = subject,
+                                    onClick = {
+                                        navController.navigate(
+                                            Screen.SubjectDetail.route(subject.subjectId)
+                                        )
+                                    },
+                                    onEditClick = {
+                                        navController.navigate(
+                                            Screen.EditSubject.route(subject.subjectId)
+                                        )
+                                    },
+                                    onDeleteClick = {
+                                        viewModel.requestDeleteSubject(subject.subjectId)
+                                    }
+                                )
+                            }
+                            item {
+                                Spacer(modifier = Modifier.height(72.dp))
                             }
                         }
                     }
                 }
-
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(filteredSubjects) { subject ->
-                            SubjectCard(
-                                subject = subject,
-                                onClick = {
-                                    navController.navigate(
-                                        Screen.SubjectDetail.route(subject.subjectId)
-                                    )
-                                },
-                                onEditClick = {
-                                    navController.navigate(
-                                        Screen.EditSubject.route(subject.subjectId)
-                                    )
-                                },
-                                onDeleteClick = {
-                                    viewModel.requestDeleteSubject(subject.subjectId)
-                                }
-                            )
-                        }
-                        item {
-                            Spacer(modifier = Modifier.height(72.dp))
-                        }
-                    }
-                }
             }
-        }
 
-        if (showErrorDialog && uiState.errorMessage != null) {
-            AlertDialog(
-                onDismissRequest = { showErrorDialog = false },
-                title = { Text("오류") },
-                text = { Text(uiState.errorMessage ?: "") },
-                confirmButton = {
-                    Button(onClick = { showErrorDialog = false }) {
-                        Text("확인")
+            if (showErrorDialog && uiState.errorMessage != null) {
+                AlertDialog(
+                    onDismissRequest = { showErrorDialog = false },
+                    title = { Text("오류") },
+                    text = { Text(uiState.errorMessage ?: "") },
+                    confirmButton = {
+                        Button(onClick = { showErrorDialog = false }) {
+                            Text("확인")
+                        }
                     }
-                }
-            )
-        }
+                )
+            }
 
-        if (uiState.deletingSubjectId != null) {
-            AlertDialog(
-                onDismissRequest = { viewModel.cancelDeleteSubject() },
-                title = { Text("과목 삭제") },
-                text = { Text("정말 이 과목을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.") },
-                confirmButton = {
-                    Button(onClick = { viewModel.confirmDeleteSubject() }) {
-                        Text("삭제")
+            if (uiState.deletingSubjectId != null) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.cancelDeleteSubject() },
+                    title = { Text("과목 삭제") },
+                    text = { Text("정말 이 과목을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.") },
+                    confirmButton = {
+                        Button(onClick = { viewModel.confirmDeleteSubject() }) {
+                            Text("삭제")
+                        }
+                    },
+                    dismissButton = {
+                        Button(onClick = { viewModel.cancelDeleteSubject() }) {
+                            Text("취소")
+                        }
                     }
-                },
-                dismissButton = {
-                    Button(onClick = { viewModel.cancelDeleteSubject() }) {
-                        Text("취소")
-                    }
-                }
-            )
+                )
+            }
         }
     }
 }
@@ -336,35 +421,96 @@ private fun GroupFilterDropdown(
     loading: Boolean,
     selectedGroupId: String?,
     onSelectGroup: (String?) -> Unit,
-    onCreateNewGroup: () -> Unit
+    onCreateNewGroup: () -> Unit,
+    onRenameGroup: (String, String) -> Unit,
+    onDeleteGroup: (String) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    val selectedGroup = remember(groups, selectedGroupId) {
+        groups.firstOrNull { it.groupId == selectedGroupId }
+    }
+
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var renameText by remember { mutableStateOf("") }
+
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     val selectedLabel = remember(groups, selectedGroupId) {
-        if (selectedGroupId.isNullOrBlank()) "전체"
-        else groups.firstOrNull { it.groupId == selectedGroupId }?.name ?: "전체"
+        if (selectedGroupId.isNullOrBlank()) "전체 그룹"
+        else groups.firstOrNull { it.groupId == selectedGroupId }?.name ?: "전체 그룹"
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "그룹",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "그룹 필터",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (selectedGroup != null) {
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "그룹 설정"
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("이름 수정") },
+                            onClick = {
+                                menuExpanded = false
+                                renameText = selectedGroup.name
+                                showRenameDialog = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("삭제") },
+                            onClick = {
+                                menuExpanded = false
+                                showDeleteDialog = true
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
         Box {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = !loading) { expanded = true },
+                    .clickable(enabled = !loading) { dropdownExpanded = true },
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                listOf(
+                                    Color(0xFFD6F8E6).copy(alpha = 0.6f),
+                                    Color.White.copy(alpha = 0.95f)
+                                )
+                            )
+                        )
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -380,14 +526,14 @@ private fun GroupFilterDropdown(
             }
 
             DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
+                expanded = dropdownExpanded,
+                onDismissRequest = { dropdownExpanded = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("전체") },
+                    text = { Text("전체 그룹") },
                     onClick = {
                         onSelectGroup(null)
-                        expanded = false
+                        dropdownExpanded = false
                     }
                 )
                 groups.forEach { group ->
@@ -395,19 +541,81 @@ private fun GroupFilterDropdown(
                         text = { Text(group.name) },
                         onClick = {
                             onSelectGroup(group.groupId)
-                            expanded = false
+                            dropdownExpanded = false
                         }
                     )
                 }
                 DropdownMenuItem(
                     text = { Text("＋ 새 그룹 만들기") },
                     onClick = {
-                        expanded = false
+                        dropdownExpanded = false
                         onCreateNewGroup()
                     }
                 )
             }
         }
+    }
+
+    if (showRenameDialog && selectedGroup != null) {
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = { Text("그룹 이름 수정") },
+            text = {
+                OutlinedTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    label = { Text("그룹 이름") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val newName = renameText.trim()
+                        if (newName.isNotEmpty()) {
+                            onRenameGroup(selectedGroup.groupId, newName)
+                        }
+                        showRenameDialog = false
+                    }
+                ) {
+                    Text("저장")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
+    if (showDeleteDialog && selectedGroup != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("그룹 삭제") },
+            text = {
+                Text(
+                    "\"${selectedGroup.name}\" 그룹을 삭제하시겠습니까?\n" +
+                            "이 그룹에 속한 과목은 그룹이 해제되거나 목록에서 제거될 수 있습니다."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteGroup(selectedGroup.groupId)
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
     }
 }
 
@@ -420,7 +628,7 @@ private fun SubjectCard(
 ) {
     val color = try {
         Color(android.graphics.Color.parseColor(subject.color ?: "#4F46E5"))
-    } catch (e: IllegalArgumentException) {
+    } catch (_: IllegalArgumentException) {
         Color(0xFF4F46E5)
     }
 
@@ -430,12 +638,24 @@ private fun SubjectCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .background(
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            color.copy(alpha = 0.16f),
+                            Color.White.copy(alpha = 0.97f)
+                        )
+                    )
+                )
+                .padding(16.dp)
+        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -443,12 +663,12 @@ private fun SubjectCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Canvas(
                         modifier = Modifier
-                            .height(16.dp)
-                            .fillMaxWidth(0.02f)
+                            .height(18.dp)
+                            .fillMaxWidth(0.03f)
                     ) {
                         drawRoundRect(color = color)
                     }
