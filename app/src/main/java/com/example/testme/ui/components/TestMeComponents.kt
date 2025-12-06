@@ -7,18 +7,32 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -126,18 +140,34 @@ fun TestMeCard(
     content: @Composable () -> Unit
 ) {
     val border = if (hasBorder) BorderStroke(1.dp, UIBorder) else null
-    val cardModifier = if (onClick != null) modifier.clickable(onClick = onClick) else modifier
-
-    Card(
-        modifier = cardModifier,
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = backgroundColor
-        ),
-        border = border,
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        content()
+    // clickable modifier moved inside Card to ensure ripple effect works correctly with shape
+    // But Card composable handles onClick directly if provided in newer APIs or via overload.
+    // Standard Card with onClick:
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(20.dp), // Increased for trendy look
+            colors = CardDefaults.cardColors(
+                containerColor = backgroundColor
+            ),
+            border = border,
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp) // Soft elevation
+        ) {
+            content()
+        }
+    } else {
+        Card(
+            modifier = modifier,
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = backgroundColor
+            ),
+            border = border,
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            content()
+        }
     }
 }
 
@@ -155,7 +185,7 @@ fun TestMeButton(
     Button(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(16.dp), // More rounded
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor,
@@ -187,7 +217,7 @@ fun TestMeTextField(
         label = label?.let { { Text(it) } },
         placeholder = placeholder?.let { { Text(it, color = Color.Gray) } },
         singleLine = singleLine,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = UIPrimary,
             unfocusedBorderColor = UIBorder,
@@ -206,7 +236,77 @@ fun TestMeTitle(
     Text(
         text = text,
         modifier = modifier,
-        style = MaterialTheme.typography.headlineMedium,
+        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
         color = color
     )
+}
+
+@Composable
+fun <T> TestMeDropdown(
+    items: List<T>,
+    selectedItem: T?,
+    onItemSelected: (T?) -> Unit,
+    itemLabel: (T) -> String,
+    placeholder: String = "Select",
+    modifier: Modifier = Modifier,
+    showClearOption: Boolean = false,
+    clearOptionLabel: String = "전체"
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier) {
+        Card(
+            onClick = { expanded = true },
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = selectedItem?.let(itemLabel) ?: placeholder,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = if (selectedItem != null) MaterialTheme.colorScheme.onSurface else Color.Gray
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Dropdown",
+                    tint = Color.Gray
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color.White)
+        ) {
+            if (showClearOption) {
+                DropdownMenuItem(
+                    text = { Text(clearOptionLabel) },
+                    onClick = {
+                        onItemSelected(null)
+                        expanded = false
+                    }
+                )
+            }
+            items.forEach { item ->
+                DropdownMenuItem(
+                    text = { Text(itemLabel(item)) },
+                    onClick = {
+                        onItemSelected(item)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
 }

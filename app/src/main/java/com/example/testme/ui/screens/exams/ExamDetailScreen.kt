@@ -10,6 +10,9 @@ import com.example.testme.data.model.ExamQuestion
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import com.example.testme.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -77,7 +80,7 @@ class ExamDetailViewModel(
     private val _uiState = MutableStateFlow(ExamDetailUiState())
     val uiState: StateFlow<ExamDetailUiState> = _uiState
 
-    fun loadDetail() {
+    fun loadDetail(context: android.content.Context) {
         if (_uiState.value.loading) return
 
         viewModelScope.launch {
@@ -91,27 +94,27 @@ class ExamDetailViewModel(
                     apiService.getExamResult("Bearer $token", subjectId, examId)
                 val submission = result.submission
                 val grading = submission.gradingResult
-                    ?: throw IllegalStateException("채점 결과가 없습니다.")
+                    ?: throw IllegalStateException(context.getString(R.string.msg_no_grading_result))
 
-                val scoreLabel = String.format(
-                    "%.1f / %.1f점",
+                val scoreLabel = context.getString(
+                    R.string.score_fmt,
                     grading.totalScore,
                     grading.maxScore
                 )
-                val percentageLabel = String.format("%.1f%%", grading.percentage)
+                val percentageLabel = context.getString(R.string.percentage_fmt, grading.percentage)
 
                 val difficultyLabel: String = when (exam.difficulty) {
-                    "easy" -> "쉬움"
-                    "medium" -> "보통"
-                    "hard" -> "어려움"
-                    else -> exam.difficulty
+                    "easy" -> context.getString(R.string.difficulty_easy)
+                    "medium" -> context.getString(R.string.difficulty_medium)
+                    "hard" -> context.getString(R.string.difficulty_hard)
+                    else -> exam.difficulty ?: context.getString(R.string.difficulty_unknown)
                 }
 
-                val languageLabel: String = exam.language ?: "언어 미지정"
-                val metaLabel = "문항 ${exam.numQuestions}개 · 생성일 ${exam.createdAt}"
+                val languageLabel: String = exam.language ?: context.getString(R.string.language_unspecified)
+                val metaLabel = context.getString(R.string.meta_exam_detail_fmt, exam.numQuestions, exam.createdAt)
 
                 val header = ExamDetailHeaderUi(
-                    title = exam.title,
+                    title = exam.title ?: "",
                     scoreLabel = scoreLabel,
                     percentageLabel = percentageLabel,
                     difficultyLabel = difficultyLabel,
@@ -131,14 +134,14 @@ class ExamDetailViewModel(
                     val qDetail: ExamQuestion? = questionsById[qr.questionId]
 
                     val typeLabel = when (qDetail?.type) {
-                        "multiple_choice" -> "객관식"
-                        "short_answer" -> "단답형"
-                        "essay" -> "서술형"
-                        else -> qDetail?.type ?: "기타"
+                        "multiple_choice" -> context.getString(R.string.qtype_multiple_choice)
+                        "short_answer" -> context.getString(R.string.qtype_short_answer)
+                        "essay" -> context.getString(R.string.qtype_essay)
+                        else -> qDetail?.type ?: context.getString(R.string.qtype_unknown)
                     }
 
                     val maxPoints = qr.maxPoints ?: qDetail?.points
-                    val pointsLabel = maxPoints?.let { "배점 ${it.toInt()}점" }
+                    val pointsLabel = maxPoints?.let { context.getString(R.string.label_points_fmt, it.toInt()) }
 
                     val options = qDetail?.options ?: emptyList()
 
@@ -171,12 +174,12 @@ class ExamDetailViewModel(
 
                     val scoreLabelPerQuestion: String? =
                         if (qr.score != null && maxPoints != null) {
-                            "${qr.score.toInt()} / ${maxPoints.toInt()}점"
+                            context.getString(R.string.score_simple_fmt, qr.score.toInt(), maxPoints.toInt())
                         } else null
 
                     QuestionResultUi(
                         index = idx + 1,
-                        questionText = qDetail?.question ?: "문항 내용을 불러오지 못했습니다.",
+                        questionText = qDetail?.question ?: context.getString(R.string.msg_question_load_fail),
                         typeLabel = typeLabel,
                         pointsLabel = pointsLabel,
                         isCorrect = qr.isCorrect,
@@ -198,7 +201,7 @@ class ExamDetailViewModel(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     loading = false,
-                    errorMessage = e.message ?: "시험 결과를 불러오지 못했습니다."
+                    errorMessage = e.message ?: context.getString(R.string.msg_load_result_fail)
                 )
             }
         }
@@ -236,9 +239,10 @@ fun ExamDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        viewModel.loadDetail()
+        viewModel.loadDetail(context)
     }
 
     LaunchedEffect(uiState.errorMessage) {
@@ -254,12 +258,12 @@ fun ExamDetailScreen(
         containerColor = Color.Transparent,
         topBar = {
             TestMeTopAppBar(
-                title = "시험 결과",
+                title = stringResource(R.string.title_exam_result),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "뒤로가기"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 }
@@ -299,13 +303,13 @@ fun ExamDetailScreen(
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column {
                                     Text(
-                                        text = "시험 결과 분석 중...",
+                                        text = stringResource(R.string.msg_loading_result),
                                         style = MaterialTheme.typography.bodyLarge.copy(
                                             fontWeight = FontWeight.SemiBold
                                         )
                                     )
                                     Text(
-                                        text = "AI가 채점 결과를 정리하고 있어요.",
+                                        text = stringResource(R.string.msg_loading_result_desc),
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -327,15 +331,15 @@ fun ExamDetailScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                uiState.errorMessage ?: "시험 결과를 불러오지 못했습니다.",
+                                uiState.errorMessage ?: stringResource(R.string.msg_load_result_fail),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.error
                             )
                             OutlinedButton(
-                                onClick = { viewModel.loadDetail() },
+                                onClick = { viewModel.loadDetail(context) },
                                 shape = RoundedCornerShape(999.dp)
                             ) {
-                                Text("다시 시도")
+                                Text(stringResource(R.string.action_retry))
                             }
                         }
                     }
@@ -348,7 +352,7 @@ fun ExamDetailScreen(
                             .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("표시할 시험 결과가 없습니다.")
+                        Text(stringResource(R.string.msg_no_result_display))
                     }
                 }
 
@@ -469,7 +473,7 @@ private fun ExamResultSummaryCard(
 
                 if (header.overallFeedback.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    SectionTitle("총평", accentColor)
+                    SectionTitle(stringResource(R.string.label_overall_feedback), accentColor)
                     Text(
                         text = header.overallFeedback,
                         style = MaterialTheme.typography.bodySmall
@@ -478,7 +482,7 @@ private fun ExamResultSummaryCard(
 
                 if (header.strengths.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    SectionTitle("강점", accentColor)
+                    SectionTitle(stringResource(R.string.label_strengths), accentColor)
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         header.strengths.forEach { s ->
                             Text("• $s", style = MaterialTheme.typography.bodySmall)
@@ -488,7 +492,7 @@ private fun ExamResultSummaryCard(
 
                 if (header.weaknesses.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    SectionTitle("보완할 점", accentColor)
+                    SectionTitle(stringResource(R.string.label_weaknesses), accentColor)
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         header.weaknesses.forEach { w ->
                             Text("• $w", style = MaterialTheme.typography.bodySmall)
@@ -498,7 +502,7 @@ private fun ExamResultSummaryCard(
 
                 if (header.studyRecommendations.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    SectionTitle("추천 학습 방향", accentColor)
+                    SectionTitle(stringResource(R.string.label_study_recommendations), accentColor)
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         header.studyRecommendations.forEach { r ->
                             Text("• $r", style = MaterialTheme.typography.bodySmall)
@@ -581,7 +585,7 @@ private fun QuestionResultCard(
             ) {
                 Column {
                     Text(
-                        text = "Q${result.index}. ${result.typeLabel}",
+                        text = stringResource(R.string.label_question_fmt, result.index, result.typeLabel),
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold
                         )
@@ -597,7 +601,7 @@ private fun QuestionResultCard(
                 }
 
                 result.isCorrect?.let { isCorrect ->
-                    val label = if (isCorrect) "정답" else "오답"
+                    val label = if (isCorrect) stringResource(R.string.label_correct) else stringResource(R.string.label_incorrect)
                     val color = if (isCorrect) accentColor else MaterialTheme.colorScheme.error
 
                     Box(
@@ -639,7 +643,7 @@ private fun QuestionResultCard(
 
             result.userAnswerLabel?.let {
                 Spacer(modifier = Modifier.height(4.dp))
-                SectionTitle("내 답변", accentColor)
+                SectionTitle(stringResource(R.string.label_my_answer), accentColor)
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall
@@ -648,7 +652,7 @@ private fun QuestionResultCard(
 
             result.correctAnswerLabel?.let {
                 Spacer(modifier = Modifier.height(4.dp))
-                SectionTitle("정답", accentColor)
+                SectionTitle(stringResource(R.string.label_correct_answer), accentColor)
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall
@@ -657,7 +661,7 @@ private fun QuestionResultCard(
 
             result.modelAnswer?.let {
                 Spacer(modifier = Modifier.height(4.dp))
-                SectionTitle("모범 답안", accentColor)
+                SectionTitle(stringResource(R.string.label_model_answer), accentColor)
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall
@@ -667,7 +671,7 @@ private fun QuestionResultCard(
             result.feedback?.let {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "피드백",
+                    text = stringResource(R.string.label_feedback),
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.SemiBold,
                         color = accentColor

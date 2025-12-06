@@ -22,6 +22,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.res.stringResource
+import com.example.testme.R
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.PdfDownloadResponse
 import com.example.testme.ui.components.SoftBlobBackground
@@ -49,10 +51,12 @@ class PdfPreviewViewModel(
     val uiState: StateFlow<PdfPreviewUiState> = _uiState
 
     init {
-        loadPdf()
+        // Initial load happens without context in init block,
+        // retry will use context for localized error messages.
+        loadPdf(null) 
     }
 
-    private fun loadPdf() {
+    private fun loadPdf(context: android.content.Context? = null) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(loading = true, error = null)
             try {
@@ -68,14 +72,14 @@ class PdfPreviewViewModel(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     loading = false,
-                    error = e.message ?: "PDF를 불러오는 중 오류가 발생했습니다."
+                    error = e.message ?: (context?.getString(R.string.msg_pdf_error_default) ?: "Error loading PDF")
                 )
             }
         }
     }
 
-    fun retry() {
-        loadPdf()
+    fun retry(context: android.content.Context? = null) {
+        loadPdf(context)
     }
 }
 
@@ -118,12 +122,12 @@ fun PdfPreviewScreen(
                 title = if (uiState.originalFilename.isNotBlank())
                     uiState.originalFilename
                 else
-                    "PDF 미리보기",
+                    stringResource(R.string.title_pdf_preview),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "뒤로가기"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 }
@@ -133,22 +137,26 @@ fun PdfPreviewScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
         ) {
             // 배경
             SoftBlobBackground()
 
-            when {
-                uiState.loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                when {
+                    uiState.loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                "PDF를 불러오는 중입니다...",
+                                stringResource(R.string.msg_pdf_loading),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = brandSecondaryText
                             )
@@ -174,18 +182,18 @@ fun PdfPreviewScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    "PDF를 불러오는 데 실패했습니다.",
+                                    stringResource(R.string.msg_pdf_load_fail),
                                     style = MaterialTheme.typography.titleMedium
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    uiState.error ?: "알 수 없는 오류",
+                                    uiState.error ?: stringResource(R.string.unknown),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = brandSecondaryText
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Button(onClick = { viewModel.retry() }) {
-                                    Text("다시 시도")
+                                Button(onClick = { viewModel.retry(context) }) {
+                                    Text(stringResource(R.string.action_retry))
                                 }
                             }
                         }
@@ -252,7 +260,7 @@ fun PdfPreviewScreen(
                                 },
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text("다른 앱으로 열기")
+                                Text(stringResource(R.string.action_open_external))
                             }
 
                             Button(
@@ -268,7 +276,7 @@ fun PdfPreviewScreen(
                                     contentColor = Color.White
                                 )
                             ) {
-                                Text("PDF 다운로드")
+                                Text(stringResource(R.string.action_download_pdf))
                             }
                         }
                     }
@@ -279,10 +287,11 @@ fun PdfPreviewScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("표시할 PDF 정보가 없습니다.")
+                        Text(stringResource(R.string.msg_no_pdf_info))
                     }
                 }
             }
         }
     }
+}
 }

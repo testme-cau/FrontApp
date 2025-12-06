@@ -90,21 +90,24 @@ fun EmailSignupScreen(navController: NavController) {
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
         ) {
             SoftBlobBackground()
 
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(padding)
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -273,4 +276,5 @@ fun EmailSignupScreen(navController: NavController) {
             }
         }
     }
+}
 }

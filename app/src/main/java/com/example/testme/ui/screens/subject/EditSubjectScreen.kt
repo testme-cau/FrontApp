@@ -45,6 +45,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import com.example.testme.R
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.SubjectData
 import com.example.testme.data.model.SubjectResponse
@@ -152,10 +155,10 @@ class EditSubjectViewModel(
         _uiState.value = _uiState.value.copy(color = color)
     }
 
-    suspend fun submit(): Result<Unit> {
+    suspend fun submit(context: android.content.Context): Result<Unit> {
         val state = _uiState.value
         if (state.name.isBlank()) {
-            return Result.failure(IllegalArgumentException("과목명을 입력해주세요."))
+            return Result.failure(IllegalArgumentException(context.getString(R.string.err_subject_name_required)))
         }
         _uiState.value = state.copy(submitting = true)
         return try {
@@ -207,6 +210,7 @@ fun EditSubjectScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val brandPrimary = Color(0xFF5BA27F)
     val brandPrimaryDeep = Color(0xFF1E4032)
@@ -217,10 +221,10 @@ fun EditSubjectScreen(
         containerColor = Color.Transparent,
         topBar = {
             TestMeTopAppBar(
-                title = "과목 수정",
+                title = stringResource(R.string.title_edit_subject),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
@@ -233,18 +237,22 @@ fun EditSubjectScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
         ) {
             SoftBlobBackground()
 
-            if (uiState.loading) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                if (uiState.loading) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = Color.White.copy(alpha = 0.9f)
@@ -258,7 +266,7 @@ fun EditSubjectScreen(
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             CircularProgressIndicator()
-                            Text("과목 정보를 불러오는 중입니다.")
+                            Text(stringResource(R.string.msg_loading_subject))
                         }
                     }
                 }
@@ -285,7 +293,7 @@ fun EditSubjectScreen(
                             verticalArrangement = Arrangement.Top
                         ) {
                             Text(
-                                text = "과목 정보를 수정합니다.",
+                                text = stringResource(R.string.desc_edit_subject),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color(0xFF4C6070)
                             )
@@ -294,7 +302,7 @@ fun EditSubjectScreen(
                             OutlinedTextField(
                                 value = uiState.name,
                                 onValueChange = { viewModel.updateName(it) },
-                                label = { Text("과목명") },
+                                label = { Text(stringResource(R.string.label_subject_name)) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -304,7 +312,7 @@ fun EditSubjectScreen(
                             OutlinedTextField(
                                 value = uiState.description,
                                 onValueChange = { viewModel.updateDescription(it) },
-                                label = { Text("설명") },
+                                label = { Text(stringResource(R.string.label_description)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(120.dp),
@@ -314,7 +322,7 @@ fun EditSubjectScreen(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Text(
-                                text = "그룹 (선택)",
+                                text = stringResource(R.string.label_group_optional),
                                 style = MaterialTheme.typography.labelMedium
                             )
                             Spacer(modifier = Modifier.height(4.dp))
@@ -331,7 +339,7 @@ fun EditSubjectScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            Text(text = "색상", style = MaterialTheme.typography.labelMedium)
+                            Text(text = stringResource(R.string.label_color), style = MaterialTheme.typography.labelMedium)
                             Spacer(modifier = Modifier.height(8.dp))
 
                             ColorPaletteRow(
@@ -349,14 +357,14 @@ fun EditSubjectScreen(
                                 Button(
                                     onClick = {
                                         scope.launch {
-                                            val result = viewModel.submit()
+                                            val result = viewModel.submit(context)
                                             if (result.isSuccess) {
-                                                snackbarHostState.showSnackbar("과목 수정 완료")
+                                                snackbarHostState.showSnackbar(context.getString(R.string.msg_subject_update_success))
                                                 navController.popBackStack()
                                             } else {
                                                 snackbarHostState.showSnackbar(
                                                     result.exceptionOrNull()?.message
-                                                        ?: "과목 수정 실패"
+                                                        ?: context.getString(R.string.msg_subject_update_fail)
                                                 )
                                             }
                                         }
@@ -377,7 +385,7 @@ fun EditSubjectScreen(
                                             color = Color.White
                                         )
                                     }
-                                    Text(text = if (uiState.submitting) "수정 중..." else "수정")
+                                    Text(text = if (uiState.submitting) stringResource(R.string.action_updating) else stringResource(R.string.action_update))
                                 }
 
                                 OutlinedButton(
@@ -385,7 +393,7 @@ fun EditSubjectScreen(
                                     enabled = !uiState.submitting,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Text("취소")
+                                    Text(stringResource(R.string.action_cancel))
                                 }
                             }
                         }
@@ -394,4 +402,5 @@ fun EditSubjectScreen(
             }
         }
     }
+}
 }

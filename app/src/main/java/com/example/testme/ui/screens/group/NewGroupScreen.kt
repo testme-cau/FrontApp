@@ -51,6 +51,9 @@ import com.example.testme.data.model.group.GroupCreateRequest
 import com.example.testme.ui.components.SoftBlobBackground
 import com.example.testme.ui.components.TestMeTopAppBar
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import com.example.testme.R
 
 data class NewGroupUiState(
     val name: String = "",
@@ -74,9 +77,9 @@ class NewGroupViewModel(
         uiState = uiState.copy(description = value)
     }
 
-    suspend fun submit(): Result<Unit> {
+    suspend fun submit(context: android.content.Context): Result<Unit> {
         if (uiState.name.isBlank()) {
-            return Result.failure(IllegalArgumentException("그룹 이름을 입력해주세요."))
+            return Result.failure(IllegalArgumentException(context.getString(R.string.err_group_name_required)))
         }
         uiState = uiState.copy(submitting = true)
         return try {
@@ -120,15 +123,16 @@ fun NewGroupScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val state = viewModel.uiState
+    val context = LocalContext.current
 
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
             TestMeTopAppBar(
-                title = "새 그룹 만들기",
+                title = stringResource(R.string.title_new_group),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
@@ -141,16 +145,20 @@ fun NewGroupScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
         ) {
             SoftBlobBackground()
 
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.Top
+                    .padding(padding)
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.Top
+                ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -174,14 +182,14 @@ fun NewGroupScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Text(
-                            "과목을 묶어서 관리할 그룹을 만들어 보세요.",
+                            stringResource(R.string.desc_new_group),
                             style = MaterialTheme.typography.bodyMedium
                         )
 
                         OutlinedTextField(
                             value = state.name,
                             onValueChange = { viewModel.updateName(it) },
-                            label = { Text("그룹 이름") },
+                            label = { Text(stringResource(R.string.label_group_name)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -189,7 +197,7 @@ fun NewGroupScreen(
                         OutlinedTextField(
                             value = state.description,
                             onValueChange = { viewModel.updateDescription(it) },
-                            label = { Text("설명 (선택)") },
+                            label = { Text(stringResource(R.string.label_description_optional)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(120.dp),
@@ -205,15 +213,15 @@ fun NewGroupScreen(
                             Button(
                                 onClick = {
                                     scope.launch {
-                                        val result = viewModel.submit()
+                                        val result = viewModel.submit(context)
                                         if (result.isSuccess) {
                                             scope.launch {
-                                                snackbarHostState.showSnackbar("그룹 생성 완료")
+                                                snackbarHostState.showSnackbar(context.getString(R.string.msg_group_create_success))
                                             }
                                             navController.popBackStack()
                                         } else {
                                             snackbarHostState.showSnackbar(
-                                                result.exceptionOrNull()?.message ?: "그룹 생성 실패"
+                                                result.exceptionOrNull()?.message ?: context.getString(R.string.msg_group_create_fail)
                                             )
                                         }
                                     }
@@ -229,7 +237,7 @@ fun NewGroupScreen(
                                         strokeWidth = 2.dp
                                     )
                                 }
-                                Text(text = if (state.submitting) "생성 중..." else "그룹 생성")
+                                Text(text = if (state.submitting) stringResource(R.string.action_generating) else stringResource(R.string.action_create_group))
                             }
 
                             OutlinedButton(
@@ -237,7 +245,7 @@ fun NewGroupScreen(
                                 enabled = !state.submitting,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text("취소")
+                                Text(stringResource(R.string.action_cancel))
                             }
                         }
                     }
@@ -245,4 +253,5 @@ fun NewGroupScreen(
             }
         }
     }
+}
 }

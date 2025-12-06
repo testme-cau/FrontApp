@@ -69,10 +69,12 @@
     <string name="action_submitting">제출 중...</string>
     <string name="action_retry">다시 시도</string>
     <string name="action_go_to_subject">과목 화면으로 이동</string>
+    <string name="action_create_first_exam">첫 시험 생성</string>
 
     <!-- Status & Types -->
     <string name="status_processing">생성 중</string>
     <string name="status_grading">채점 중</string>
+    <string name="status_grading_completed">채점 완료</string>
     <string name="status_draft">초안</string>
     <string name="status_ready">준비 완료</string>
     <string name="status_in_progress">진행 중</string>
@@ -147,6 +149,7 @@
     <string name="min_pdf_error">최소 1개의 PDF를 선택해주세요.</string>
     <string name="generate_start_success">시험 생성이 시작되었습니다.</string>
     <string name="generate_fail">시험 생성에 실패했습니다.</string>
+    <string name="label_language_code_fmt">%s</string>
 
     <!-- Take Exam -->
     <string name="take_exam_title">시험 응시</string>
@@ -160,4 +163,106 @@
     <string name="exam_submit_fail">시험 제출에 실패했습니다.</string>
     <string name="hint_answer_input">답변을 입력하세요</string>
     <string name="msg_error_generic">오류가 발생했습니다.</string>
+
+    <!-- Dashboard & Group -->
+    <string name="dashboard_title">과목 목록</string>
+    <string name="action_add_subject">과목 추가</string>
+    <string name="msg_no_subjects">등록된 과목이 없습니다.</string>
+    <string name="action_create_first_subject">첫 과목 만들기</string>
+    <string name="title_delete_subject">과목 삭제</string>
+    <string name="msg_delete_subject_confirm">정말 이 과목을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</string>
+    <string name="msg_subject_list_load_fail">과목 목록을 불러오지 못했습니다.</string>
+    <string name="msg_subject_delete_fail">과목 삭제에 실패했습니다.</string>
+    
+    <string name="label_all_groups">전체 그룹</string>
+    <string name="action_new_group">＋ 새 그룹 만들기</string>
+    <string name="desc_group_settings">그룹 설정</string>
+    <string name="action_rename">이름 수정</string>
+    <string name="title_rename_group">그룹 이름 수정</string>
+    <string name="label_group_name">그룹 이름</string>
+    <string name="title_delete_group">그룹 삭제</string>
+    <string name="msg_delete_group_confirm">"%s" 그룹을 삭제하시겠습니까?\n이 그룹에 속한 과목은 그룹이 해제되거나 목록에서 제거될 수 있습니다.</string>
+    <string name="msg_group_update_fail">그룹 수정에 실패했습니다.</string>
+    <string name="msg_group_delete_fail">그룹 삭제에 실패했습니다.</string>
+    
+    <string name="action_confirm">확인</string>
+    <string name="title_error">오류</string>
+    <string name="desc_more_options">더보기</string>
+    <string name="label_pdf_count">PDF</string>
+    <string name="label_exam_count">시험</string>
+    <!-- New Subject -->
+    <string name="title_new_subject">새 과목 추가</string>
+    <string name="desc_new_subject">과목 정보를 입력해서 새로운 과목을 만들어 보세요.</string>
+    <string name="label_subject_name">과목명</string>
+    <string name="hint_subject_name">예: 데이터베이스</string>
+    <string name="label_description">설명</string>
+    <string name="hint_subject_desc">과목에 대한 간단한 설명</string>
+    <string name="label_group_optional">그룹 (선택)</string>
+    <string name="label_color">색상</string>
+    <string name="msg_subject_create_success">과목 생성 완료</string>
+    <string name="msg_subject_create_fail">과목 생성 실패</string>
+    <string name="action_create_subject">과목 생성</string>
+    <string name="label_no_group">그룹 없음</string>
+    <string name="label_group_loading">그룹 로딩 중...</string>
+    <string name="label_select_group">그룹 선택</string>
+    <string name="action_create_new_group_plus">＋ 새 그룹 생성</string>
+    <string name="label_selected">선택됨</string>
+    <string name="err_subject_name_required">과목명을 입력해주세요.</string>
+    <!-- New Group -->
+    <string name="title_new_group">새 그룹 만들기</string>
+    <string name="desc_new_group">과목을 묶어서 관리할 그룹을 만들어 보세요.</string>
+    <string name="label_description_optional">설명 (선택)</string>
+    <string name="msg_group_create_success">그룹 생성 완료</string>
+    <string name="msg_group_create_fail">그룹 생성 실패</string>
+    <string name="action_create_group">그룹 생성</string>
+    <string name="err_group_name_required">그룹 이름을 입력해주세요.</string>
+    <!-- Edit Subject -->
+    <string name="title_edit_subject">과목 수정</string>
+    <string name="msg_loading_subject">과목 정보를 불러오는 중입니다.</string>
+    <string name="desc_edit_subject">과목 정보를 수정합니다.</string>
+    <string name="msg_subject_update_success">과목 수정 완료</string>
+    <string name="msg_subject_update_fail">과목 수정 실패</string>
+    <string name="action_updating">수정 중...</string>
+    <string name="action_update">수정</string>
+
+    <!-- PDF Preview -->
+    <string name="title_pdf_preview">PDF 미리보기</string>
+    <string name="msg_pdf_loading">PDF를 불러오는 중입니다...</string>
+    <string name="msg_pdf_load_fail">PDF를 불러오는 데 실패했습니다.</string>
+    <string name="msg_pdf_error_default">PDF를 불러오는 중 오류가 발생했습니다.</string>
+    <string name="action_open_external">다른 앱으로 열기</string>
+    <string name="action_download_pdf">PDF 다운로드</string>
+    <string name="msg_no_pdf_info">표시할 PDF 정보가 없습니다.</string>
+
+    <!-- Exam List -->
+    <string name="title_exam_list_fmt">%s 시험 목록</string>
+    <string name="msg_exam_list_loading">시험 목록을 불러오는 중...</string>
+    <string name="msg_exam_list_loading_desc">잠시만 기다려 주세요.</string>
+    <string name="msg_exam_list_empty">생성된 시험이 없습니다.</string>
+
+    <!-- Exam Detail -->
+    <string name="msg_no_grading_result">채점 결과가 없습니다.</string>
+    <string name="score_fmt">%.1f / %.1f점</string>
+    <string name="percentage_fmt">%.1f%%</string>
+    <string name="meta_exam_detail_fmt">문항 %d개 · 생성일 %s</string>
+    <string name="label_points_fmt">배점 %d점</string>
+    <string name="score_simple_fmt">%d / %d점</string>
+    <string name="msg_question_load_fail">문제를 불러올 수 없습니다.</string>
+    <string name="msg_load_result_fail">결과를 불러오는 데 실패했습니다.</string>
+    <string name="title_exam_result">시험 결과</string>
+    <string name="msg_loading_result">결과 분석 중...</string>
+    <string name="msg_loading_result_desc">AI가 채점 결과를 불러오고 있습니다.</string>
+    <string name="msg_no_result_display">표시할 결과가 없습니다.</string>
+    <string name="label_overall_feedback">총평</string>
+    <string name="label_strengths">강점</string>
+    <string name="label_weaknesses">약점</string>
+    <string name="label_study_recommendations">학습 제안</string>
+    <string name="label_question_fmt">문제 %d · %s</string>
+    <string name="label_correct">정답</string>
+    <string name="label_incorrect">오답</string>
+    <string name="label_my_answer">내 답안</string>
+    <string name="label_correct_answer">정답</string>
+    <string name="label_model_answer">모범 답안</string>
+    <string name="label_feedback">피드백</string>
+
 </resources>

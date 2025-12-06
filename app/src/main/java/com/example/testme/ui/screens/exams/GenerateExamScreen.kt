@@ -55,6 +55,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.res.stringResource
+import com.example.testme.R
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.GenerateExamRequest
 import com.example.testme.data.model.JobResponse
@@ -69,9 +71,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 enum class Difficulty(val value: String, val label: String) {
-    EASY("easy", "쉬움"),
-    MEDIUM("medium", "보통"),
-    HARD("hard", "어려움")
+    EASY("easy", "easy"), // Actual label handled in UI
+    MEDIUM("medium", "medium"),
+    HARD("hard", "hard")
 }
 
 data class LanguageUi(
@@ -177,10 +179,10 @@ class GenerateExamViewModel(
         _uiState.value = _uiState.value.copy(languageCode = code)
     }
 
-    suspend fun submit(): Result<JobResponse> {
+    suspend fun submit(context: android.content.Context): Result<JobResponse> {
         val state = _uiState.value
         if (state.selectedPdfIds.isEmpty()) {
-            return Result.failure(IllegalArgumentException("최소 1개의 PDF를 선택해주세요."))
+            return Result.failure(IllegalArgumentException(context.getString(R.string.min_pdf_error)))
         }
 
         _uiState.value = state.copy(submitting = true)
@@ -249,6 +251,7 @@ fun GenerateExamScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.loadPdfs()
@@ -259,12 +262,12 @@ fun GenerateExamScreen(
         containerColor = Color.Transparent,
         topBar = {
             TestMeTopAppBar(
-                title = "시험 생성",
+                title = stringResource(R.string.generate_exam_title),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "뒤로가기"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 }
@@ -301,13 +304,13 @@ fun GenerateExamScreen(
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
                                 Text(
-                                    text = "자료 확인 중...",
+                                    text = stringResource(R.string.loading_pdfs_title),
                                     style = MaterialTheme.typography.bodyLarge.copy(
                                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                                     )
                                 )
                                 Text(
-                                    text = "AI가 PDF 목록을 불러오고 있어요.",
+                                    text = stringResource(R.string.loading_pdfs_desc),
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -335,7 +338,7 @@ fun GenerateExamScreen(
                                 .padding(16.dp)
                         ) {
                             Text(
-                                "선택한 PDF를 기반으로 AI가 자동으로 시험을 생성합니다.",
+                                stringResource(R.string.generate_desc),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -373,7 +376,7 @@ fun GenerateExamScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "PDF 선택",
+                                        text = stringResource(R.string.pdf_select_title),
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                                         )
@@ -383,7 +386,7 @@ fun GenerateExamScreen(
                                         enabled = uiState.pdfs.isNotEmpty() && !uiState.submitting
                                     ) {
                                         Text(
-                                            text = if (viewModel.allSelected()) "전체 해제" else "전체 선택"
+                                            text = if (viewModel.allSelected()) stringResource(R.string.pdf_deselect_all) else stringResource(R.string.pdf_select_all)
                                         )
                                     }
                                 }
@@ -391,7 +394,7 @@ fun GenerateExamScreen(
                                 if (uiState.pdfs.isEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        "업로드된 PDF가 없습니다. 과목 화면에서 먼저 PDF를 업로드해 주세요.",
+                                        stringResource(R.string.generate_empty_pdfs),
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -402,7 +405,7 @@ fun GenerateExamScreen(
                                             )
                                         }
                                     ) {
-                                        Text("과목 화면으로 이동")
+                                        Text(stringResource(R.string.action_go_to_subject))
                                     }
                                 } else {
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -423,7 +426,7 @@ fun GenerateExamScreen(
                                         }
                                     }
                                     Text(
-                                        "선택된 PDF: ${uiState.selectedPdfIds.size}개",
+                                        stringResource(R.string.selected_pdfs_count_fmt, uiState.selectedPdfIds.size),
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -458,14 +461,14 @@ fun GenerateExamScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Text(
-                                    "출제 옵션",
+                                    stringResource(R.string.option_title),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                                     )
                                 )
 
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("문제 수", style = MaterialTheme.typography.labelMedium)
+                                    Text(stringResource(R.string.option_num_questions), style = MaterialTheme.typography.labelMedium)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -480,7 +483,7 @@ fun GenerateExamScreen(
                                                     enabled = !uiState.submitting,
                                                     modifier = buttonModifier
                                                 ) {
-                                                    Text("${n}문제")
+                                                    Text("${n}" + stringResource(R.string.questions_suffix))
                                                 }
                                             } else {
                                                 OutlinedButton(
@@ -488,19 +491,19 @@ fun GenerateExamScreen(
                                                     enabled = !uiState.submitting,
                                                     modifier = buttonModifier
                                                 ) {
-                                                    Text("${n}문제")
+                                                    Text("${n}" + stringResource(R.string.questions_suffix))
                                                 }
                                             }
                                         }
                                     }
                                     Text(
-                                        "현재: ${uiState.numQuestions}문제",
+                                        stringResource(R.string.current_option_fmt, "${uiState.numQuestions}" + stringResource(R.string.questions_suffix)),
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
 
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("난이도", style = MaterialTheme.typography.labelMedium)
+                                    Text(stringResource(R.string.option_difficulty), style = MaterialTheme.typography.labelMedium)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -508,6 +511,11 @@ fun GenerateExamScreen(
                                         Difficulty.values().forEach { diff ->
                                             val isSelected = uiState.difficulty == diff
                                             val buttonModifier = Modifier.weight(1f)
+                                            val label = when (diff) {
+                                                Difficulty.EASY -> stringResource(R.string.difficulty_easy)
+                                                Difficulty.MEDIUM -> stringResource(R.string.difficulty_medium)
+                                                Difficulty.HARD -> stringResource(R.string.difficulty_hard)
+                                            }
 
                                             if (isSelected) {
                                                 Button(
@@ -515,7 +523,7 @@ fun GenerateExamScreen(
                                                     enabled = !uiState.submitting,
                                                     modifier = buttonModifier
                                                 ) {
-                                                    Text(diff.label)
+                                                    Text(label)
                                                 }
                                             } else {
                                                 OutlinedButton(
@@ -523,13 +531,18 @@ fun GenerateExamScreen(
                                                     enabled = !uiState.submitting,
                                                     modifier = buttonModifier
                                                 ) {
-                                                    Text(diff.label)
+                                                    Text(label)
                                                 }
                                             }
                                         }
                                     }
+                                    val currentDiffLabel = when (uiState.difficulty) {
+                                        Difficulty.EASY -> stringResource(R.string.difficulty_easy)
+                                        Difficulty.MEDIUM -> stringResource(R.string.difficulty_medium)
+                                        Difficulty.HARD -> stringResource(R.string.difficulty_hard)
+                                    }
                                     Text(
-                                        "현재: ${uiState.difficulty.label}",
+                                        stringResource(R.string.current_option_fmt, currentDiffLabel),
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -548,16 +561,16 @@ fun GenerateExamScreen(
                     Button(
                         onClick = {
                             scope.launch {
-                                val result = viewModel.submit()
+                                val result = viewModel.submit(context)
                                 if (result.isSuccess) {
                                     navController.popBackStack()
                                     launch {
-                                        snackbarHostState.showSnackbar("시험 생성이 시작되었습니다.")
+                                        snackbarHostState.showSnackbar(context.getString(R.string.generate_start_success))
                                     }
                                 } else {
                                     snackbarHostState.showSnackbar(
                                         result.exceptionOrNull()?.message
-                                            ?: "시험 생성에 실패했습니다."
+                                            ?: context.getString(R.string.generate_fail)
                                     )
                                 }
                             }
@@ -573,7 +586,7 @@ fun GenerateExamScreen(
                                 strokeWidth = 2.dp
                             )
                         }
-                        Text(if (uiState.submitting) "생성 중..." else "시험 생성")
+                        Text(if (uiState.submitting) stringResource(R.string.action_generating) else stringResource(R.string.action_generate_exam))
                     }
                 }
             }
@@ -593,7 +606,7 @@ private fun LanguageSelector(
     val selectedLang = languages.firstOrNull { it.code == selectedCode }
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("출제 언어", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(R.string.option_language), style = MaterialTheme.typography.labelMedium)
 
         when {
             loading -> {
@@ -605,7 +618,7 @@ private fun LanguageSelector(
                         strokeWidth = 2.dp
                     )
                     Text(
-                        "언어 목록 로딩 중...",
+                        stringResource(R.string.language_loading),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 8.dp)
                     )
@@ -614,7 +627,7 @@ private fun LanguageSelector(
 
             languages.isEmpty() -> {
                 Text(
-                    "사용 가능한 언어 정보를 불러오지 못했습니다. 기본값: $selectedCode",
+                    stringResource(R.string.language_load_fail, selectedCode),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -639,7 +652,7 @@ private fun LanguageSelector(
                         languages.forEach { lang ->
                             DropdownMenuItem(
                                 text = {
-                                    Text("${lang.nativeName} (${lang.code.uppercase()})")
+                                    Text(stringResource(R.string.label_language_code_fmt, lang.nativeName, lang.code.uppercase()))
                                 },
                                 onClick = {
                                     onSelect(lang.code)
@@ -651,8 +664,7 @@ private fun LanguageSelector(
                 }
 
                 Text(
-                    text = "선택된 언어: " +
-                            (selectedLang?.nativeName ?: selectedCode.uppercase()),
+                    text = stringResource(R.string.selected_language_fmt, (selectedLang?.nativeName ?: selectedCode.uppercase())),
                     style = MaterialTheme.typography.bodySmall
                 )
             }

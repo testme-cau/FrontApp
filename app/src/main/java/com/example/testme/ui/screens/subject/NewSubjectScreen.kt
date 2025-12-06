@@ -56,6 +56,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import com.example.testme.R
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.SubjectCreateRequest
 import com.example.testme.data.model.group.GroupData
@@ -79,6 +82,7 @@ fun NewSubjectScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.loadGroups()
@@ -91,12 +95,12 @@ fun NewSubjectScreen(
         containerColor = Color.Transparent,
         topBar = {
             TestMeTopAppBar(
-                title = "새 과목 추가",
+                title = stringResource(R.string.title_new_subject),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
@@ -110,18 +114,22 @@ fun NewSubjectScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
         ) {
             // 부드러운 배경
             SoftBlobBackground()
 
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.Top,
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(padding)
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -137,7 +145,7 @@ fun NewSubjectScreen(
                         verticalArrangement = Arrangement.Top
                     ) {
                         Text(
-                            text = "과목 정보를 입력해서 새로운 과목을 만들어 보세요.",
+                            text = stringResource(R.string.desc_new_subject),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color(0xFF4C6070)
                         )
@@ -146,8 +154,8 @@ fun NewSubjectScreen(
                         OutlinedTextField(
                             value = uiState.name,
                             onValueChange = { viewModel.updateName(it) },
-                            label = { Text("과목명") },
-                            placeholder = { Text("예: 데이터베이스") },
+                            label = { Text(stringResource(R.string.label_subject_name)) },
+                            placeholder = { Text(stringResource(R.string.hint_subject_name)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -157,8 +165,8 @@ fun NewSubjectScreen(
                         OutlinedTextField(
                             value = uiState.description,
                             onValueChange = { viewModel.updateDescription(it) },
-                            label = { Text("설명") },
-                            placeholder = { Text("과목에 대한 간단한 설명") },
+                            label = { Text(stringResource(R.string.label_description)) },
+                            placeholder = { Text(stringResource(R.string.hint_subject_desc)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(120.dp),
@@ -168,7 +176,7 @@ fun NewSubjectScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "그룹 (선택)",
+                            text = stringResource(R.string.label_group_optional),
                             style = MaterialTheme.typography.labelMedium
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -186,7 +194,7 @@ fun NewSubjectScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = "색상",
+                            text = stringResource(R.string.label_color),
                             style = MaterialTheme.typography.labelMedium
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -206,14 +214,14 @@ fun NewSubjectScreen(
                             Button(
                                 onClick = {
                                     scope.launch {
-                                        val result = viewModel.submit()
+                                        val result = viewModel.submit(context)
                                         if (result.isSuccess) {
-                                            snackbarHostState.showSnackbar("과목 생성 완료")
+                                            snackbarHostState.showSnackbar(context.getString(R.string.msg_subject_create_success))
                                             navController.popBackStack()
                                         } else {
                                             snackbarHostState.showSnackbar(
                                                 result.exceptionOrNull()?.message
-                                                    ?: "과목 생성 실패"
+                                                    ?: context.getString(R.string.msg_subject_create_fail)
                                             )
                                         }
                                     }
@@ -236,7 +244,7 @@ fun NewSubjectScreen(
                                     )
                                 }
                                 Text(
-                                    text = if (uiState.submitting) "생성 중..." else "과목 생성"
+                                    text = if (uiState.submitting) stringResource(R.string.action_generating) else stringResource(R.string.action_create_subject)
                                 )
                             }
 
@@ -245,7 +253,7 @@ fun NewSubjectScreen(
                                 enabled = !uiState.submitting,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text(text = "취소")
+                                Text(text = stringResource(R.string.action_cancel))
                             }
                         }
                     }
@@ -253,6 +261,7 @@ fun NewSubjectScreen(
             }
         }
     }
+}
 }
 
 @Composable
@@ -266,16 +275,23 @@ fun GroupDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     val selectedGroupName = remember(groups, selectedGroupId) {
-        groups.firstOrNull { it.groupId == selectedGroupId }?.name ?: "그룹 없음"
+        groups.firstOrNull { it.groupId == selectedGroupId }?.name ?: ""
     }
+    // Use stringResource directly inside logic or Text composable if possible, 
+    // but here it's inside remember block which might not update on config change if not keyed correctly.
+    // Actually stringResource is composable, so we can't use it in remember easily unless we pass context or just use it in Text.
+    // Let's handle empty string in Text.
+
+    val noGroupString = stringResource(R.string.label_no_group)
+    val displayGroupName = if (selectedGroupName.isBlank()) noGroupString else selectedGroupName
 
     Column {
         Box {
             OutlinedTextField(
-                value = selectedGroupName,
+                value = displayGroupName,
                 onValueChange = {},
                 enabled = false,
-                label = { Text(if (loading) "그룹 로딩 중..." else "그룹 선택") },
+                label = { Text(if (loading) stringResource(R.string.label_group_loading) else stringResource(R.string.label_select_group)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(enabled = !loading) {
@@ -288,7 +304,7 @@ fun GroupDropdown(
                 onDismissRequest = { expanded = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("그룹 없음") },
+                    text = { Text(stringResource(R.string.label_no_group)) },
                     onClick = {
                         onGroupSelected(null)
                         expanded = false
@@ -305,7 +321,7 @@ fun GroupDropdown(
                 }
                 Divider()
                 DropdownMenuItem(
-                    text = { Text("＋ 새 그룹 생성") },
+                    text = { Text(stringResource(R.string.action_create_new_group_plus)) },
                     onClick = {
                         expanded = false
                         onCreateNewGroup()
@@ -350,7 +366,7 @@ fun ColorPaletteRow(
                 Spacer(modifier = Modifier.height(4.dp))
                 if (isSelected) {
                     Text(
-                        text = "선택",
+                        text = stringResource(R.string.label_selected),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -418,9 +434,9 @@ class NewSubjectViewModel(
         }
     }
 
-    suspend fun submit(): Result<Unit> {
+    suspend fun submit(context: android.content.Context): Result<Unit> {
         if (_uiState.value.name.isBlank()) {
-            return Result.failure(IllegalArgumentException("과목명을 입력해주세요."))
+            return Result.failure(IllegalArgumentException(context.getString(R.string.err_subject_name_required)))
         }
         _uiState.value = _uiState.value.copy(submitting = true)
         return try {
