@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
@@ -241,14 +243,11 @@ fun ProfileScreen(
                 },
                 actions = {
                     if (uiState.isEditing) {
-                        IconButton(
+                        TextButton(
                             onClick = { viewModel.saveChanges() },
                             enabled = !uiState.isSaving
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Save,
-                                contentDescription = stringResource(R.string.action_save)
-                            )
+                            Text(stringResource(R.string.action_save))
                         }
                         TextButton(
                             onClick = { viewModel.cancelEdit() },
@@ -257,11 +256,8 @@ fun ProfileScreen(
                             Text(stringResource(R.string.action_cancel))
                         }
                     } else {
-                        IconButton(onClick = { viewModel.toggleEdit() }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = stringResource(R.string.action_edit)
-                            )
+                        TextButton(onClick = { viewModel.toggleEdit() }) {
+                            Text(stringResource(R.string.action_edit))
                         }
                     }
                 },
@@ -298,67 +294,69 @@ fun ProfileScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                     shape = CardDefaults.shape
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 24.dp),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        if (uiState.isEditing) {
-                            OutlinedTextField(
-                                value = uiState.displayName,
-                                onValueChange = { viewModel.updateDisplayName(it) },
-                                label = { Text(stringResource(R.string.label_name)) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 4.dp),
-                                singleLine = true
-                            )
-                        } else {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Text(
-                                    text = stringResource(R.string.label_name),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = uiState.displayName.ifBlank { stringResource(R.string.no_name) },
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
+                    SelectionContainer {
                         Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 24.dp),
+                            horizontalAlignment = Alignment.Start
                         ) {
-                            ProfileRow(
-                                label = stringResource(R.string.label_email),
-                                value = uiState.email.ifBlank { stringResource(R.string.unknown) }
-                            )
-
                             if (uiState.isEditing) {
-                                LanguageDropdown(
-                                    label = stringResource(R.string.label_language),
-                                    selected = uiState.language.ifBlank { "ko" },
-                                    options = uiState.availableLanguages.ifEmpty { listOf("ko", "en") },
-                                    loading = uiState.loadingLanguages,
-                                    onSelect = { viewModel.updateLanguage(it) }
+                                OutlinedTextField(
+                                    value = uiState.displayName,
+                                    onValueChange = { viewModel.updateDisplayName(it) },
+                                    label = { Text(stringResource(R.string.label_name)) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp),
+                                    singleLine = true
                                 )
                             } else {
-                                val displayLang = when(uiState.language.ifBlank { "ko" }) {
-                                    "ko" -> "🇰🇷 " + stringResource(R.string.language_ko)
-                                    "en" -> "🇺🇸 " + stringResource(R.string.language_en)
-                                    else -> uiState.language
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = stringResource(R.string.label_name),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = uiState.displayName.ifBlank { stringResource(R.string.no_name) },
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
                                 ProfileRow(
-                                    label = stringResource(R.string.label_language),
-                                    value = displayLang
+                                    label = stringResource(R.string.label_email),
+                                    value = uiState.email.ifBlank { stringResource(R.string.unknown) }
                                 )
+
+                                if (uiState.isEditing) {
+                                    LanguageDropdown(
+                                        label = stringResource(R.string.label_language),
+                                        selected = uiState.language.ifBlank { "ko" },
+                                        options = uiState.availableLanguages.ifEmpty { listOf("ko", "en") },
+                                        loading = uiState.loadingLanguages,
+                                        onSelect = { viewModel.updateLanguage(it) }
+                                    )
+                                } else {
+                                    val displayLang = when(uiState.language.ifBlank { "ko" }) {
+                                        "ko" -> "🇰🇷 " + stringResource(R.string.language_ko)
+                                        "en" -> "🇺🇸 " + stringResource(R.string.language_en)
+                                        else -> uiState.language
+                                    }
+                                    ProfileRow(
+                                        label = stringResource(R.string.label_language),
+                                        value = displayLang
+                                    )
+                                }
                             }
                         }
                     }
