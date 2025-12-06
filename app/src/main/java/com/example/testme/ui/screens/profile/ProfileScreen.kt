@@ -380,7 +380,7 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.large,
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White.copy(alpha = 0.95f),
-                            contentColor = MaterialTheme.colorScheme.primary)
+                            contentColor = Color.Black)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Logout,

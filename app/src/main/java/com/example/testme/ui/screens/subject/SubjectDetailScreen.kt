@@ -66,6 +66,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -1072,18 +1073,27 @@ private fun SubjectTabRow(
     androidx.compose.material3.TabRow(
         selectedTabIndex = selectedTab.ordinal,
         containerColor = Color.Transparent,
-        contentColor = MaterialTheme.colorScheme.primary
+        contentColor = Color.Black,
+        indicator = { tabPositions ->
+            androidx.compose.material3.TabRowDefaults.Indicator(
+                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab.ordinal]),
+                color = Color.Black
+            )
+        }
     ) {
         SubjectDetailTab.values().forEach { tab ->
+            val selected = selectedTab == tab
             androidx.compose.material3.Tab(
-                selected = selectedTab == tab,
+                selected = selected,
                 onClick = { onTabSelected(tab) },
                 text = {
                     Text(
                         text = when (tab) {
                             SubjectDetailTab.EXAMS -> stringResource(R.string.tab_exams)
                             SubjectDetailTab.PDF -> stringResource(R.string.tab_pdf)
-                        }
+                        },
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        color = Color.Black
                     )
                 }
             )

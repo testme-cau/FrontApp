@@ -14,7 +14,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -75,6 +79,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 import android.content.Context
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -132,6 +137,7 @@ fun TakeExamScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                // No windowInsetsPadding(WindowInsets.ime) here, handled by LazyColumn contentPadding
         ) {
             SoftBlobBackground()
 
@@ -209,13 +215,16 @@ fun TakeExamScreen(
                 }
 
                 else -> {
+                    val imeInsets = WindowInsets.ime
+                    val bottomPadding = imeInsets.asPaddingValues().calculateBottomPadding()
+
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
                             start = 16.dp,
                             end = 16.dp,
                             top = 16.dp,
-                            bottom = 100.dp // Space for FAB
+                            bottom = bottomPadding + 16.dp
                         ),
                         verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
@@ -245,41 +254,39 @@ fun TakeExamScreen(
                                 accentColor = subjectColor
                             )
                         }
-                    }
 
-                    // Floating Submit Button Area
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Button(
-                            onClick = { showSubmitConfirm = true },
-                            enabled = !uiState.submitting,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(999.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = subjectColor,
-                                disabledContainerColor = subjectColor.copy(alpha = 0.6f)
-                            ),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                        ) {
-                            if (uiState.submitting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .padding(end = 8.dp),
-                                    strokeWidth = 2.dp,
-                                    color = Color.White
+                        // Submit Button as the last item
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = { showSubmitConfirm = true },
+                                enabled = !uiState.submitting,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .padding(horizontal = 16.dp),
+                                shape = RoundedCornerShape(999.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Black,
+                                    disabledContainerColor = Color.Black.copy(alpha = 0.6f)
+                                ),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                            ) {
+                                if (uiState.submitting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .padding(end = 8.dp),
+                                        strokeWidth = 2.dp,
+                                        color = Color.White
+                                    )
+                                }
+                                Text(
+                                    text = if (uiState.submitting) stringResource(R.string.action_submitting) else stringResource(R.string.action_submit),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                             }
-                            Text(
-                                text = if (uiState.submitting) stringResource(R.string.action_submitting) else stringResource(R.string.action_submit),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
+                            Spacer(modifier = Modifier.height(16.dp)) // Normal spacer
                         }
                     }
                 }
@@ -404,7 +411,7 @@ fun QuestionItemCard(
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = accentColor,
+                    color = Color.Black,
                     modifier = Modifier.size(32.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -734,3 +741,4 @@ class TakeExamViewModel(
         }
     }
 }
+
