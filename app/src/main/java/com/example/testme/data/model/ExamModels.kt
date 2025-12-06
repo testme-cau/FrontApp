@@ -16,7 +16,14 @@ data class ExamData(
     @SerialName("status") val status: String,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String? = null,
-    @SerialName("questions") val questions: List<ExamQuestion> = emptyList()
+    @SerialName("questions") val questions: List<ExamQuestion> = emptyList(),
+    @SerialName("grading_result") val gradingResult: GradingResult? = null, // 점수 정보를 위해 추가
+    
+    // 응답 데이터에 직접 포함된 필드들 추가
+    @SerialName("score") val score: Double? = null,
+    @SerialName("max_score") val maxScore: Double? = null,
+    @SerialName("submission_status") val submissionStatus: String? = null,
+    @SerialName("submission_id") val submissionId: String? = null
 )
 
 // -------------------------------------------------------------

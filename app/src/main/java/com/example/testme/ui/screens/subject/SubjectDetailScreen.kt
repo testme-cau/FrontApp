@@ -376,9 +376,9 @@ class SubjectDetailViewModel(
                         generationProgress = genJob?.progressPercentage,
                         gradingJobStatus = gradJob?.status,
                         gradingProgress = gradJob?.progressPercentage,
-                        // 추가된 필드
-                        score = null, // API 미지원으로 null
-                        maxScore = null,
+                        // 추가된 필드 (ExamData에서 직접 가져오도록 수정)
+                        score = exam.score ?: exam.gradingResult?.totalScore, 
+                        maxScore = exam.maxScore ?: exam.gradingResult?.maxScore,
                         pdfName = null // API 미지원으로 null
                     )
                 }
