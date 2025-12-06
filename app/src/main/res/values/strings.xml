@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Testme</string>
+    <string name="app_name">test.me</string>
     <string name="splash_title">test.me</string>
     <string name="splash_subtitle">AI 시험 생성 플랫폼</string>
     <string name="profile_title">프로필</string>
