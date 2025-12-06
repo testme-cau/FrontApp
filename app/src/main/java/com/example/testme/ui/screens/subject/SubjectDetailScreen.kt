@@ -45,6 +45,7 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
@@ -670,7 +671,16 @@ fun SubjectDetailScreen(
                                 SubjectDetailTab.PDF -> viewModel.loadPdfs(clearExisting = true)
                             }
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        indicator = {
+                            PullToRefreshDefaults.Indicator(
+                                modifier = Modifier.align(Alignment.TopCenter),
+                                isRefreshing = isRefreshing,
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                color = MaterialTheme.colorScheme.primary,
+                                state = pullRefreshState
+                            )
+                        }
                     ) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),

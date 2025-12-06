@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Testme" parent="Theme.AppCompat.Light.NoActionBar" />
+    <style name="Theme.Testme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/brand_green_500</item>
+        <item name="colorPrimaryDark">@color/brand_green_600</item>
+        <item name="colorAccent">@color/brand_cyan_500</item>
+    </style>
 </resources>

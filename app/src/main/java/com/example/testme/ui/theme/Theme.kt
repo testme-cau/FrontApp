@@ -10,17 +10,28 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val LightColors = lightColorScheme(
-    primary = UIPrimary,
+    primary = BrandGreen500,
     onPrimary = Color.White,
-    secondary = UISecondary,
-    onSecondary = UIForeground,
-    tertiary = BrandGreen500, // Use Brand Green as tertiary for accents
+    primaryContainer = BrandGreen100,
+    onPrimaryContainer = BrandGreen600,
+
+    secondary = BrandCyan500,
+    onSecondary = Color.White,
+    secondaryContainer = BrandCyan100,
+    onSecondaryContainer = BrandCyan600,
+
+    tertiary = BrandLime500,
+    onTertiary = Color.White,
+
     background = UIBackground,
     onBackground = UIForeground,
+
     surface = UIBackground,
     onSurface = UIForeground,
-    surfaceVariant = UISecondary, // Slightly different surface
+
+    surfaceVariant = UISecondary,
     onSurfaceVariant = UIForeground,
+    
     outline = UIBorder,
     error = UIDestructive
 )
