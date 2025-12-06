@@ -71,7 +71,7 @@ fun SoftBlobBackground() {
     Canvas(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF6FFFA))
+            .background(Color.White)
     ) {
         // Blob 1 (Green)
         drawCircle(

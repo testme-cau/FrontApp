@@ -13,7 +13,9 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import com.example.testme.R
 import kotlinx.coroutines.delay
 
 @Composable
@@ -99,7 +101,7 @@ fun SplashScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "test.me",
+                stringResource(R.string.splash_title),
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 52.sp,
@@ -107,7 +109,7 @@ fun SplashScreen(navController: NavController) {
                 )
             )
             Text(
-                "AI 시험 생성 플랫폼",
+                stringResource(R.string.splash_subtitle),
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontSize = 20.sp,
                     color = Color(0xFF1E4032).copy(alpha = 0.85f)

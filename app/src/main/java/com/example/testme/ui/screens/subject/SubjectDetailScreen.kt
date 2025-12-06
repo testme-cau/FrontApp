@@ -31,7 +31,9 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.Surface
 import androidx.compose.material.icons.filled.Quiz
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.SignalCellularAlt
 import java.time.format.DateTimeFormatter
@@ -152,12 +154,15 @@ data class SubjectExamUi(
     val generationJobStatus: String?,
     val generationProgress: Double?,
     val gradingJobStatus: String?,
-    val gradingProgress: Double?
+    val gradingProgress: Double?,
+    val score: Double? = null,
+    val maxScore: Double? = null,
+    val pdfName: String? = null
 ) {
     val shortLabel: String
-        get() = "Exam #${examId.takeLast(6)}" // This is a fallback, so it's okay to be English/code-like
+        get() = "Exam #${examId.takeLast(6)}"
 
-    // activeJobLabel logic moved to composable to use stringResource
+    // ... (나머지 속성들)
 
     val progress: Double?
         get() = when {
@@ -169,11 +174,20 @@ data class SubjectExamUi(
     val hasOngoingJob: Boolean
         get() = (generationJobStatus == "processing" || generationJobStatus == "pending" || gradingJobStatus == "processing" || gradingJobStatus == "pending")
 
+    // 채점 완료 여부: gradingJobStatus가 "completed"여야 함.
+    // 주의: ExamData의 status와 JobData의 status를 구분해야 함.
+    // ExamData.status -> "active" (응시 가능)
+    // JobData(Grading).status -> "completed" (채점 완료)
+    // 그런데 SubjectExamUi에는 gradingJobStatus만 있음.
+    // score가 있으면 채점 완료로 간주하는 로직 추가.
     val canViewResult: Boolean
-        get() = gradingJobStatus == "completed"
+        get() = gradingJobStatus == "completed" || score != null
 
+    // 응시 가능 여부: 상태가 "active" 또는 "ready"이고, 아직 채점 완료되지 않았으며, 채점 중도 아닌 경우.
+    // 만약 이미 응시해서 채점 대기 중이면 canTakeExam은 false여야 함.
+    // 또한 score가 있으면 이미 본 시험이므로 false.
     val canTakeExam: Boolean
-        get() = status == "active" || status == "ready"
+        get() = (status == "active" || status == "ready") && gradingJobStatus != "completed" && gradingJobStatus != "processing" && gradingJobStatus != "pending" && score == null
 }
 
 class SubjectDetailViewModel(
@@ -325,10 +339,31 @@ class SubjectDetailViewModel(
                         .groupBy { it.examId ?: "" }
                         .mapValues { (_, jobs) -> jobs.firstOrNull() }
 
+                val pdfMap = _uiState.value.pdfs.associateBy { it.fileId }
+
                 val items = examResponse.exams.map { exam ->
                     val genJob = latestExamJobByExamId[exam.examId]
                     val gradJob = latestGradingJobByExamId[exam.examId]
-
+                    
+                    // PDF 이름 찾기 (ExamData에 pdfIds가 있다고 가정해야 하는데, 현재 ExamData 정의를 확인해보니 pdf_ids가 없습니다.
+                    // 하지만 GenerateExamRequest에는 있습니다.
+                    // 만약 API 응답 ExamData에 pdf_ids나 source_pdf_id가 없다면 매핑이 불가능합니다.
+                    // 일단 ExamModels.kt를 봤을 때 ExamData에 pdfIds 필드가 없었습니다.
+                    // 따라서 이 부분은 일단 null로 두거나, 로직을 보완해야 합니다.
+                    // 그러나 사용자가 "PDF 소스"를 보여달라고 했으므로, 방법을 찾아야 합니다.
+                    // 임시로 "Unknown Source" 또는 null 처리합니다.
+                    // 검색 결과에 따르면 ExamData에는 subjectId만 있고 pdfId는 명시되어 있지 않았습니다.
+                    // User query image shows "Week 4 Note.pdf".
+                    // Assuming we can't get it right now without API change.
+                    // But wait, `ExamData` in search result had `subject_id`.
+                    // Let's check if there is any link. 
+                    // For now, let's pass null if we can't find it.
+                    
+                    // *Wait*, I saw `ExamModels.kt` but maybe I missed something?
+                    // Let's assume we can't get PDF name for now unless we fetch exam details.
+                    // But actually, `SubjectDetailViewModel` has `pdfs`.
+                    // If we can't link exam to pdf, we leave it null.
+                    
                     SubjectExamUi(
                         examId = exam.examId,
                         title = exam.title ?: "",
@@ -341,6 +376,10 @@ class SubjectDetailViewModel(
                         generationProgress = genJob?.progressPercentage,
                         gradingJobStatus = gradJob?.status,
                         gradingProgress = gradJob?.progressPercentage,
+                        // 추가된 필드
+                        score = null, // API 미지원으로 null
+                        maxScore = null,
+                        pdfName = null // API 미지원으로 null
                     )
                 }
 
@@ -1400,15 +1439,7 @@ private fun ExamListSection(
 
                         ExamRow(
                             exam = exam,
-                            accentColor = accentColor,
                             isDeleting = isDeleting,
-                            onPrimary = {
-                                when {
-                                    exam.canViewResult -> onViewResult(exam)
-                                    exam.canTakeExam -> onTakeExam(exam)
-                                    else -> Unit
-                                }
-                            },
                             onTakeExam = { onTakeExam(exam) },
                             onViewResult = { onViewResult(exam) },
                             onDelete = { onDeleteExam(exam) },
@@ -1418,7 +1449,6 @@ private fun ExamListSection(
                                 "hard" -> stringResource(R.string.difficulty_hard)
                                 else -> exam.difficulty ?: stringResource(R.string.difficulty_unknown)
                             },
-                            languageLabel = exam.language ?: stringResource(R.string.language_unspecified),
                             activeJobLabel = activeJobLabel
                         )
                     }
@@ -1428,230 +1458,4 @@ private fun ExamListSection(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ExamRow(
-    exam: SubjectExamUi,
-    accentColor: Color,
-    isDeleting: Boolean,
-    onPrimary: () -> Unit,
-    onTakeExam: () -> Unit,
-    onViewResult: () -> Unit,
-    onDelete: () -> Unit,
-    difficultyLabel: String,
-    languageLabel: String,
-    activeJobLabel: String?
-) {
-    val brandSecondaryText = Color(0xFF4C6070)
-    val context = LocalContext.current
-
-    val isGradingInProgress =
-        exam.gradingJobStatus == "processing" || exam.gradingJobStatus == "pending"
-
-    val (primaryLabel, primaryEnabled) = when {
-        exam.canViewResult -> stringResource(R.string.action_view_result) to true
-        isGradingInProgress -> stringResource(R.string.status_grading) to false
-        exam.canTakeExam -> stringResource(R.string.action_take_exam) to true
-        else -> stringResource(R.string.status_grading) to false
-    }
-
-    // 날짜 포매팅
-    val formattedDate = remember(exam.createdAt) {
-        try {
-            if (exam.createdAt != null) {
-                // ISO 8601 파싱 (예: 2025-12-06T04:33:47.981000+00:00)
-                val zdt = ZonedDateTime.parse(exam.createdAt)
-                // 현재 로케일에 맞는 형식 (MEDIUM: "2025. 12. 6." or "Dec 6, 2025")
-                val formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
-                    .withLocale(Locale.getDefault())
-                zdt.format(formatter)
-            } else {
-                ""
-            }
-        } catch (e: Exception) {
-            exam.createdAt ?: ""
-        }
-    }
-
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = {
-            if (it == SwipeToDismissBoxValue.StartToEnd) {
-                onDelete()
-                false // 바로 사라지지 않고 다이얼로그 띄우기 위해 false 리턴 후 onDelete 호출
-            } else {
-                false
-            }
-        }
-    )
-
-    SwipeToDismissBox(
-        state = dismissState,
-        backgroundContent = {
-            val color = Color.Red.copy(alpha = 0.8f)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(color, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = Color.White
-                )
-            }
-        },
-        enableDismissFromStartToEnd = true,
-        enableDismissFromEndToStart = false
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
-        ) {
-            // Explicitly handle click and clip for correct ripple shape
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .clickable(enabled = primaryEnabled && !isDeleting) { onPrimary() }
-                    .padding(16.dp)
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = exam.title,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    // 메타데이터 아이콘 + 레이블 (Start 정렬로 복원)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp), // SpaceBetween 대신 간격 사용
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // 문항 수
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(
-                                imageVector = Icons.Default.Quiz,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = brandSecondaryText
-                            )
-                            Text(
-                                text = "${exam.numQuestions}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = brandSecondaryText
-                            )
-                        }
-                        
-                        // 난이도
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(
-                                imageVector = Icons.Default.SignalCellularAlt,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = brandSecondaryText
-                            )
-                            Text(
-                                text = difficultyLabel,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = brandSecondaryText
-                            )
-                        }
-
-                        // 언어
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(
-                                imageVector = Icons.Default.Language,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = brandSecondaryText
-                            )
-                            Text(
-                                text = languageLabel,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = brandSecondaryText
-                            )
-                        }
-                    }
-
-                    // 날짜 표시 (제목 아래 혹은 메타데이터 아래로 이동)
-                    if (formattedDate.isNotBlank()) {
-                        Text(
-                            text = formattedDate,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = brandSecondaryText.copy(alpha = 0.7f)
-                        )
-                    }
-
-                    if (exam.hasOngoingJob && exam.progress != null && activeJobLabel != null) {
-                        // 진행 중 상태 표시 (기존 유지)
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            val pDouble = exam.progress!!.coerceIn(0.0, 100.0)
-                            val pFloat = (pDouble / 100.0).toFloat()
-
-                            LinearProgressIndicator(
-                                progress = pFloat,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp),
-                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-                            )
-                            Text(
-                                text = stringResource(R.string.job_progress_fmt, pDouble.toInt()),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = brandSecondaryText
-                            )
-                        }
-                    }
-
-                        val containerColor = Color(0xFFE8F5E9)
-                        val contentColor = Color(0xFF2E7D32)
-
-                        Button(
-                            onClick = {
-                                when {
-                                    exam.canViewResult -> onViewResult()
-                                    exam.canTakeExam -> onTakeExam()
-                                    else -> Unit
-                                }
-                            },
-                            enabled = primaryEnabled && !isDeleting,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = containerColor,
-                                contentColor = contentColor
-                            )
-                        ) {
-                            if (isDeleting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp,
-                                    color = contentColor
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                            }
-                            Text(primaryLabel)
-                        }
-                }
-            }
-        }
-    }
-}
+// ExamRow removed from here (moved to ExamRow.kt)

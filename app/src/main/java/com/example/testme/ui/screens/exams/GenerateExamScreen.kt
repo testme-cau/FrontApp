@@ -406,9 +406,7 @@ fun GenerateExamScreen(
                                     Spacer(modifier = Modifier.height(8.dp))
                                     OutlinedButton(
                                         onClick = {
-                                            navController.navigate(
-                                                Screen.SubjectDetail.route(subjectId)
-                                            )
+                                            navController.popBackStack()
                                         }
                                     ) {
                                         Text(stringResource(R.string.action_go_to_subject))
