@@ -14,7 +14,7 @@ captures/
 .DS_Store
 Thumbs.db
 
-app/google-services.json
+google-services.json
 *.jks
 *.keystore
 *.pem
