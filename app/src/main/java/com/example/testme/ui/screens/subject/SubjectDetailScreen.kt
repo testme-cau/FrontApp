@@ -537,28 +537,6 @@ fun SubjectDetailScreen(
 
     Scaffold(
         containerColor = Color.Transparent,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        uiState.subjectName.ifBlank { stringResource(R.string.subject_detail_title) },
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
-                ),
-                scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
-                    rememberTopAppBarState()
-                )
-            )
-        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         Box(
@@ -576,16 +554,9 @@ fun SubjectDetailScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        bottom = 96.dp
-                    )
-                ) {
-                    item {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // 1. Header (Fixed)
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         SubjectHeaderSection(
                             name = uiState.subjectName,
                             description = uiState.subjectDescription,
@@ -594,140 +565,137 @@ fun SubjectDetailScreen(
                         )
                     }
 
-                    // 시험 | PDF 탭
-                    item {
-                        SubjectTabRow(
-                            selectedTab = selectedTab,
-                            onTabSelected = { selectedTab = it }
-                        )
-                    }
+                    // 2. Content (Scrollable)
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 0.dp,
+                            bottom = 100.dp // FAB Space
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // 시험 | PDF 탭
+                        item {
+                            SubjectTabRow(
+                                selectedTab = selectedTab,
+                                onTabSelected = { selectedTab = it }
+                            )
+                        }
 
-                    // 탭에 따라 분기
-                    if (selectedTab == SubjectDetailTab.EXAMS) {
-                        item {
-                            JobProgressBanner(
-                                examJobs = uiState.examJobs,
-                                exams = uiState.exams,
-                                gradingJobs = uiState.gradingJobs
-                            )
-                        }
-                        item {
-                            ExamListSection(
-                                uiState = uiState,
-                                onRefresh = { viewModel.loadExams(forceRefresh = true) },
-                                onTakeExam = { exam ->
-                                    navController.navigate(
-                                        Screen.TakeExam.route(
-                                            subjectId,
-                                            exam.examId
-                                        )
-                                    )
-                                },
-                                onViewResult = { exam ->
-                                    navController.navigate(
-                                        Screen.ExamDetail.route(
-                                            subjectId,
-                                            exam.examId
-                                        )
-                                    )
-                                },
-                                onDeleteExam = { exam ->
-                                    examToDelete = exam
-                                }
-                            )
-                        }
-                    } else {
-                        // PDF 탭
-                        item {
-                            JobProgressBanner(
-                                examJobs = uiState.examJobs,
-                                exams = uiState.exams,
-                                gradingJobs = uiState.gradingJobs
-                            )
-                        }
-                        item {
-                            PdfSectionHeader(
-                                onUploadClick = {
-                                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                                        addCategory(Intent.CATEGORY_OPENABLE)
-                                        type = "application/pdf"
-                                        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                            putExtra(
-                                                DocumentsContract.EXTRA_INITIAL_URI,
-                                                MediaStore.Downloads.EXTERNAL_CONTENT_URI
+                        // 탭에 따라 분기
+                        if (selectedTab == SubjectDetailTab.EXAMS) {
+                            item {
+                                JobProgressBanner(
+                                    examJobs = uiState.examJobs,
+                                    exams = uiState.exams,
+                                    gradingJobs = uiState.gradingJobs
+                                )
+                            }
+                            item {
+                                ExamListSection(
+                                    uiState = uiState,
+                                    onRefresh = { viewModel.loadExams(forceRefresh = true) },
+                                    onTakeExam = { exam ->
+                                        navController.navigate(
+                                            Screen.TakeExam.route(
+                                                subjectId,
+                                                exam.examId
                                             )
-                                        }
+                                        )
+                                    },
+                                    onViewResult = { exam ->
+                                        navController.navigate(
+                                            Screen.ExamDetail.route(
+                                                subjectId,
+                                                exam.examId
+                                            )
+                                        )
+                                    },
+                                    onDeleteExam = { exam ->
+                                        examToDelete = exam
                                     }
-                                    filePickerLauncher.launch(intent)
-                                },
-                                uploading = uiState.uploading,
-                                uploadProgress = uiState.uploadProgress
-                            )
-                        }
+                                )
+                            }
+                        } else {
+                            // PDF 탭
+                            item {
+                                JobProgressBanner(
+                                    examJobs = uiState.examJobs,
+                                    exams = uiState.exams,
+                                    gradingJobs = uiState.gradingJobs
+                                )
+                            }
+                            item {
+                                PdfSectionHeader(
+                                    uploading = uiState.uploading,
+                                    uploadProgress = uiState.uploadProgress
+                                )
+                            }
 
 
-                        // PDF 리스트
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color.White.copy(alpha = 0.96f)
-                                ),
-                                elevation = CardDefaults.cardElevation(4.dp)
-                            ) {
-                                Box(modifier = Modifier.padding(12.dp)) {
-                                    when {
-                                        uiState.loadingPdfs && uiState.pdfs.isEmpty() -> {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(120.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                CircularProgressIndicator()
+                            // PDF 리스트
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color.White.copy(alpha = 0.96f)
+                                    ),
+                                    elevation = CardDefaults.cardElevation(4.dp)
+                                ) {
+                                    Box(modifier = Modifier.padding(12.dp)) {
+                                        when {
+                                            uiState.loadingPdfs && uiState.pdfs.isEmpty() -> {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(120.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    CircularProgressIndicator()
+                                                }
                                             }
-                                        }
 
-                                        uiState.pdfs.isEmpty() -> {
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(4.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally
-                                            ) {
-                                                Text(stringResource(R.string.pdf_empty))
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    stringResource(R.string.pdf_empty_guide),
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = brandSecondaryText
-                                                )
-                                            }
-                                        }
-
-                                        else -> {
-                                            Column(
-                                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                                            ) {
-                                                uiState.pdfs.forEach { pdf ->
-                                                    val isDeleting =
-                                                        uiState.deletingFileId == pdf.fileId
-                                                    PdfRow(
-                                                        pdf = pdf,
-                                                        onOpen = {
-                                                            navController.navigate("subjects/$subjectId/pdfs/${pdf.fileId}")
-                                                        },
-                                                        onDelete = {
-                                                            pdfToDelete = pdf
-                                                            showDeletePdfDialog = true
-                                                        },
-                                                        onGenerateExam = {
-                                                            navController.navigate("subjects/$subjectId/generate-exam")
-                                                        },
-                                                        isDeleting = isDeleting
+                                            uiState.pdfs.isEmpty() -> {
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(4.dp),
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    Text(stringResource(R.string.pdf_empty))
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        stringResource(R.string.pdf_empty_guide),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = brandSecondaryText
                                                     )
+                                                }
+                                            }
+
+                                            else -> {
+                                                Column(
+                                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    uiState.pdfs.forEach { pdf ->
+                                                        val isDeleting =
+                                                            uiState.deletingFileId == pdf.fileId
+                                                        PdfRow(
+                                                            pdf = pdf,
+                                                            onOpen = {
+                                                                navController.navigate("subjects/$subjectId/pdfs/${pdf.fileId}")
+                                                            },
+                                                            onDelete = {
+                                                                pdfToDelete = pdf
+                                                                showDeletePdfDialog = true
+                                                            },
+                                                            onGenerateExam = {
+                                                                navController.navigate("subjects/$subjectId/generate-exam")
+                                                            },
+                                                            isDeleting = isDeleting
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
@@ -735,13 +703,13 @@ fun SubjectDetailScreen(
                                 }
                             }
                         }
-                    }
 
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
+                        item { Spacer(modifier = Modifier.height(8.dp)) }
+                    }
                 }
             }
 
-            // 하단 고정 "시험 생성" 버튼 (대각선 그라데이션 애니메이션)
+            // Bottom Button (Restored Style)
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -749,64 +717,75 @@ fun SubjectDetailScreen(
                     .background(Color.White.copy(alpha = 0.96f))
                     .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
-                // 파랑 + 청록 + 초록 살짝 섞은 그라데이션
-                val gradientColors = listOf(
-                    Color(0xFF3BA9FF), // 파랑
-                    Color(0xFF32D6C4), // 청록
-                    Color(0xFF22C55E)  // 초록
-                )
-
-                val infiniteTransition = rememberInfiniteTransition(label = "exam-button-gradient-diagonal")
-
-                // 대각선 방향으로 흘러가는 offset
-                val animatedOffset by infiniteTransition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = 2f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(
-                            durationMillis = 3500,
-                            easing = LinearEasing
-                        ),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "exam-button-offset-diagonal"
-                )
-
-                val brush = Brush.linearGradient(
-                    colors = gradientColors,
-                    start = Offset(
-                        x = -400f * animatedOffset,
-                        y = -200f * animatedOffset
-                    ),
-                    end = Offset(
-                        x = 400f * animatedOffset,
-                        y = 200f * animatedOffset
+                if (selectedTab == SubjectDetailTab.EXAMS) {
+                    val gradientColors = listOf(
+                        Color(0xFF3BA9FF), // 파랑
+                        Color(0xFF32D6C4), // 청록
+                        Color(0xFF22C55E)  // 초록
                     )
-                )
-
-                Button(
-                    onClick = {
-                        navController.navigate("subjects/$subjectId/generate-exam")
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .background(
-                            brush = brush,
-                            shape = RoundedCornerShape(999.dp)
+                    val infiniteTransition = rememberInfiniteTransition(label = "exam-button-gradient")
+                    val animatedOffset by infiniteTransition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = 2f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(3500, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
                         ),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = Color.White
-                    ),
-                    contentPadding = PaddingValues(vertical = 12.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.action_generate_exam),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold
+                        label = "exam-button-offset"
+                    )
+                    val brush = Brush.linearGradient(
+                        colors = gradientColors,
+                        start = Offset(x = -400f * animatedOffset, y = -200f * animatedOffset),
+                        end = Offset(x = 400f * animatedOffset, y = 200f * animatedOffset)
+                    )
+
+                    Button(
+                        onClick = { navController.navigate("subjects/$subjectId/generate-exam") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .background(brush = brush, shape = RoundedCornerShape(999.dp)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = Color.White
+                        ),
+                        contentPadding = PaddingValues(vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.action_generate_exam),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                         )
-                    )
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                                addCategory(Intent.CATEGORY_OPENABLE)
+                                type = "application/pdf"
+                                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                    putExtra(DocumentsContract.EXTRA_INITIAL_URI, MediaStore.Downloads.EXTERNAL_CONTENT_URI)
+                                }
+                            }
+                            filePickerLauncher.launch(intent)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF3BA9FF), // Solid Blue
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(999.dp),
+                        contentPadding = PaddingValues(vertical = 12.dp)
+                    ) {
+                        Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.action_upload_pdf),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
                 }
             }
 
@@ -941,34 +920,28 @@ private fun SubjectHeaderSection(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
             }
-            Text(
-                text = name,
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (color != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .background(color, androidx.compose.foundation.shape.CircleShape)
+                    )
+                }
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
+                )
+            }
             if (!description.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium
                 )
-            }
-            if (color != null) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .height(18.dp)
-                            .fillMaxWidth(0.15f)
-                            .background(color)
-                    )
-                    Text(
-                        text = stringResource(R.string.subject_color_desc),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
             }
         }
     }
@@ -980,85 +953,52 @@ private fun SubjectTabRow(
     selectedTab: SubjectDetailTab,
     onTabSelected: (SubjectDetailTab) -> Unit
 ) {
-    val brandPrimary = Color(0xFF5BA27F)
-    val inactiveText = Color(0xFF4C6070)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    androidx.compose.material3.TabRow(
+        selectedTabIndex = selectedTab.ordinal,
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.primary
     ) {
-        OutlinedButton(
-            onClick = { onTabSelected(SubjectDetailTab.EXAMS) },
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = if (selectedTab == SubjectDetailTab.EXAMS)
-                    brandPrimary.copy(alpha = 0.12f) else Color.Transparent,
-                contentColor = if (selectedTab == SubjectDetailTab.EXAMS)
-                    brandPrimary else inactiveText
+        SubjectDetailTab.values().forEach { tab ->
+            androidx.compose.material3.Tab(
+                selected = selectedTab == tab,
+                onClick = { onTabSelected(tab) },
+                text = {
+                    Text(
+                        text = when (tab) {
+                            SubjectDetailTab.EXAMS -> stringResource(R.string.tab_exams)
+                            SubjectDetailTab.PDF -> stringResource(R.string.tab_pdf)
+                        }
+                    )
+                }
             )
-        ) {
-            Text(stringResource(R.string.tab_exams))
-        }
-        OutlinedButton(
-            onClick = { onTabSelected(SubjectDetailTab.PDF) },
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = if (selectedTab == SubjectDetailTab.PDF)
-                    brandPrimary.copy(alpha = 0.12f) else Color.Transparent,
-                contentColor = if (selectedTab == SubjectDetailTab.PDF)
-                    brandPrimary else inactiveText
-            )
-        ) {
-            Text(stringResource(R.string.tab_pdf))
         }
     }
 }
 
 @Composable
 private fun PdfSectionHeader(
-    onUploadClick: () -> Unit,
     uploading: Boolean,
     uploadProgress: Pair<Int, Int>?
 ) {
-    val brandPrimary = Color(0xFF5BA27F)
     val brandSecondaryText = Color(0xFF4C6070)
 
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
         ) {
-            Column {
-                Text(
-                    text = stringResource(R.string.pdf_section_title),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-                )
-                Text(
-                    text = stringResource(R.string.pdf_section_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = brandSecondaryText
-                )
-            }
-            Button(
-                onClick = onUploadClick,
-                enabled = !uploading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = brandPrimary,
-                    contentColor = Color.White
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CloudUpload,
-                    contentDescription = "Upload"
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = if (uploading) stringResource(R.string.action_uploading) else stringResource(R.string.action_upload_pdf))
-            }
+            Text(
+                text = stringResource(R.string.pdf_section_title),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Text(
+                text = stringResource(R.string.pdf_section_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = brandSecondaryText
+            )
         }
         if (uploading && uploadProgress != null) {
             val (current, total) = uploadProgress
@@ -1295,7 +1235,7 @@ private fun ExamListSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "시험 목록",
+                text = stringResource(R.string.exam_list_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
             )
         }
