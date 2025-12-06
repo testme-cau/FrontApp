@@ -30,6 +30,20 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Quiz
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.SignalCellularAlt
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
+import java.time.ZonedDateTime
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -37,7 +51,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -69,6 +82,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
 import androidx.compose.ui.platform.LocalContext
+
 import androidx.navigation.NavController
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.ExamListResponse
@@ -93,6 +107,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 
 
 private enum class SubjectDetailTab {
@@ -566,135 +581,145 @@ fun SubjectDetailScreen(
                     }
 
                     // 2. Content (Scrollable)
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            top = 0.dp,
-                            bottom = 100.dp // FAB Space
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    val pullRefreshState = rememberPullToRefreshState()
+                    val isRefreshing = uiState.loadingExams && !uiState.loadingSubject // Simple check
+
+                    PullToRefreshBox(
+                        state = pullRefreshState,
+                        isRefreshing = isRefreshing,
+                        onRefresh = { viewModel.loadExams(forceRefresh = true) },
+                        modifier = Modifier.weight(1f)
                     ) {
-                        // 시험 | PDF 탭
-                        item {
-                            SubjectTabRow(
-                                selectedTab = selectedTab,
-                                onTabSelected = { selectedTab = it }
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 0.dp,
+                                bottom = 100.dp // FAB Space
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // 시험 | PDF 탭
+                            item {
+                                SubjectTabRow(
+                                    selectedTab = selectedTab,
+                                    onTabSelected = { selectedTab = it }
+                                )
+                            }
+
+                            // 탭에 따라 분기
+                            if (selectedTab == SubjectDetailTab.EXAMS) {
+                                item {
+                                    JobProgressBanner(
+                                        examJobs = uiState.examJobs,
+                                        exams = uiState.exams,
+                                        gradingJobs = uiState.gradingJobs
+                                    )
+                                }
+                                item {
+                                    ExamListSection(
+                                        uiState = uiState,
+                                        onRefresh = { viewModel.loadExams(forceRefresh = true) },
+                                        onTakeExam = { exam ->
+                                            navController.navigate(
+                                                Screen.TakeExam.route(
+                                                    subjectId,
+                                                    exam.examId
+                                                )
+                                            )
+                                        },
+                                        onViewResult = { exam ->
+                                            navController.navigate(
+                                                Screen.ExamDetail.route(
+                                                    subjectId,
+                                                    exam.examId
+                                                )
+                                            )
+                                        },
+                                onDeleteExam = { exam ->
+                                    examToDelete = exam
+                                }
                             )
                         }
-
-                        // 탭에 따라 분기
-                        if (selectedTab == SubjectDetailTab.EXAMS) {
-                            item {
-                                JobProgressBanner(
-                                    examJobs = uiState.examJobs,
-                                    exams = uiState.exams,
-                                    gradingJobs = uiState.gradingJobs
-                                )
-                            }
-                            item {
-                                ExamListSection(
-                                    uiState = uiState,
-                                    onRefresh = { viewModel.loadExams(forceRefresh = true) },
-                                    onTakeExam = { exam ->
-                                        navController.navigate(
-                                            Screen.TakeExam.route(
-                                                subjectId,
-                                                exam.examId
-                                            )
-                                        )
-                                    },
-                                    onViewResult = { exam ->
-                                        navController.navigate(
-                                            Screen.ExamDetail.route(
-                                                subjectId,
-                                                exam.examId
-                                            )
-                                        )
-                                    },
-                                    onDeleteExam = { exam ->
-                                        examToDelete = exam
-                                    }
-                                )
-                            }
-                        } else {
-                            // PDF 탭
-                            item {
-                                JobProgressBanner(
-                                    examJobs = uiState.examJobs,
-                                    exams = uiState.exams,
-                                    gradingJobs = uiState.gradingJobs
-                                )
-                            }
-                            item {
-                                PdfSectionHeader(
-                                    uploading = uiState.uploading,
-                                    uploadProgress = uiState.uploadProgress
-                                )
-                            }
+                    } else {
+                        // PDF 탭
+                                item {
+                                    JobProgressBanner(
+                                        examJobs = uiState.examJobs,
+                                        exams = uiState.exams,
+                                        gradingJobs = uiState.gradingJobs
+                                    )
+                                }
+                                item {
+                                    PdfSectionHeader(
+                                        uploading = uiState.uploading,
+                                        uploadProgress = uiState.uploadProgress
+                                    )
+                                }
 
 
-                            // PDF 리스트
-                            item {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Color.White.copy(alpha = 0.96f)
-                                    ),
-                                    elevation = CardDefaults.cardElevation(4.dp)
-                                ) {
-                                    Box(modifier = Modifier.padding(12.dp)) {
-                                        when {
-                                            uiState.loadingPdfs && uiState.pdfs.isEmpty() -> {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(120.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    CircularProgressIndicator()
+                                // PDF 리스트
+                                item {
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = Color.White.copy(alpha = 0.96f)
+                                        ),
+                                        elevation = CardDefaults.cardElevation(4.dp)
+                                    ) {
+                                        Box(modifier = Modifier.padding(12.dp)) {
+                                            when {
+                                                uiState.loadingPdfs && uiState.pdfs.isEmpty() -> {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .height(120.dp),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        CircularProgressIndicator()
+                                                    }
                                                 }
-                                            }
 
-                                            uiState.pdfs.isEmpty() -> {
-                                                Column(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(4.dp),
-                                                    horizontalAlignment = Alignment.CenterHorizontally
-                                                ) {
-                                                    Text(stringResource(R.string.pdf_empty))
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        stringResource(R.string.pdf_empty_guide),
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = brandSecondaryText
-                                                    )
-                                                }
-                                            }
-
-                                            else -> {
-                                                Column(
-                                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                                ) {
-                                                    uiState.pdfs.forEach { pdf ->
-                                                        val isDeleting =
-                                                            uiState.deletingFileId == pdf.fileId
-                                                        PdfRow(
-                                                            pdf = pdf,
-                                                            onOpen = {
-                                                                navController.navigate("subjects/$subjectId/pdfs/${pdf.fileId}")
-                                                            },
-                                                            onDelete = {
-                                                                pdfToDelete = pdf
-                                                                showDeletePdfDialog = true
-                                                            },
-                                                            onGenerateExam = {
-                                                                navController.navigate("subjects/$subjectId/generate-exam")
-                                                            },
-                                                            isDeleting = isDeleting
+                                                uiState.pdfs.isEmpty() -> {
+                                                    Column(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(4.dp),
+                                                        horizontalAlignment = Alignment.CenterHorizontally
+                                                    ) {
+                                                        Text(stringResource(R.string.pdf_empty))
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text(
+                                                            stringResource(R.string.pdf_empty_guide),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = brandSecondaryText
                                                         )
+                                                    }
+                                                }
+
+                                                else -> {
+                                                    Column(
+                                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        uiState.pdfs.forEach { pdf ->
+                                                            val isDeleting =
+                                                                uiState.deletingFileId == pdf.fileId
+                                                            PdfRow(
+                                                                pdf = pdf,
+                                                                onOpen = {
+                                                                    navController.navigate("subjects/$subjectId/pdfs/${pdf.fileId}")
+                                                                },
+                                                                onDelete = {
+                                                                    pdfToDelete = pdf
+                                                                    showDeletePdfDialog = true
+                                                                },
+                                                                onGenerateExam = {
+                                                                    navController.navigate("subjects/$subjectId/generate-exam")
+                                                                },
+                                                                isDeleting = isDeleting
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
@@ -702,9 +727,9 @@ fun SubjectDetailScreen(
                                     }
                                 }
                             }
-                        }
 
-                        item { Spacer(modifier = Modifier.height(8.dp)) }
+                            item { Spacer(modifier = Modifier.height(8.dp)) }
+                        }
                     }
                 }
             }
@@ -714,8 +739,7 @@ fun SubjectDetailScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(Color.White.copy(alpha = 0.96f))
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .padding(horizontal = 16.dp, vertical = 10.dp) // Background removed for true floating
             ) {
                 if (selectedTab == SubjectDetailTab.EXAMS) {
                     val gradientColors = listOf(
@@ -1028,65 +1052,104 @@ private fun PdfRow(
     onGenerateExam: () -> Unit,
     isDeleting: Boolean
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                enabled = !isDeleting,
-                onClick = onOpen
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = {
+            if (it == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                false // Show dialog instead of dismissing immediately
+            } else {
+                false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val color = Color.Red.copy(alpha = 0.8f)
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .background(color, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
-                    imageVector = Icons.Default.Description,
-                    contentDescription = "PDF",
-                    modifier = Modifier.padding(end = 8.dp)
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = Color.White
                 )
-                Column {
-                    Text(
-                        text = pdf.originalFilename,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = String.format("%.2f MB", pdf.size / 1024f / 1024f),
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Clip
-                    )
-                }
             }
-
-            IconButton(
-                onClick = onDelete,
-                enabled = !isDeleting
+        },
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable(
+                        enabled = !isDeleting,
+                        onClick = onOpen
+                    )
+                    .padding(12.dp)
             ) {
-                if (isDeleting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete"
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = "PDF",
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Column {
+                            Text(
+                                text = pdf.originalFilename,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = String.format("%.2f MB", pdf.size / 1024f / 1024f),
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Clip
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = onDelete,
+                        enabled = !isDeleting
+                    ) {
+                        if (isDeleting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete"
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1321,6 +1384,7 @@ private fun ExamListSection(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ExamRow(
     exam: SubjectExamUi,
@@ -1335,6 +1399,7 @@ private fun ExamRow(
     activeJobLabel: String?
 ) {
     val brandSecondaryText = Color(0xFF4C6070)
+    val context = LocalContext.current
 
     val isGradingInProgress =
         exam.gradingJobStatus == "processing" || exam.gradingJobStatus == "pending"
@@ -1346,113 +1411,199 @@ private fun ExamRow(
         else -> stringResource(R.string.status_grading) to false
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = primaryEnabled && !isDeleting) { onPrimary() },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    // 날짜 포매팅
+    val formattedDate = remember(exam.createdAt) {
+        try {
+            if (exam.createdAt != null) {
+                // ISO 8601 파싱 (예: 2025-12-06T04:33:47.981000+00:00)
+                val zdt = ZonedDateTime.parse(exam.createdAt)
+                // 현재 로케일에 맞는 형식 (MEDIUM: "2025. 12. 6." or "Dec 6, 2025")
+                val formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+                    .withLocale(Locale.getDefault())
+                zdt.format(formatter)
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            exam.createdAt ?: ""
+        }
+    }
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = {
+            if (it == SwipeToDismissBoxValue.StartToEnd) {
+                onDelete()
+                false // 바로 사라지지 않고 다이얼로그 띄우기 위해 false 리턴 후 onDelete 호출
+            } else {
+                false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val color = Color.Red.copy(alpha = 0.8f)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = Color.White
+                )
+            }
+        },
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = false
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
         ) {
-
-            Text(
-                text = exam.title,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold
-                )
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // Explicitly handle click and clip for correct ripple shape
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable(enabled = primaryEnabled && !isDeleting) { onPrimary() }
+                    .padding(16.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.exam_questions_fmt, exam.numQuestions),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = brandSecondaryText
-                )
-                Text(
-                    text = stringResource(R.string.exam_difficulty_fmt, difficultyLabel),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = brandSecondaryText
-                )
-                Text(
-                    text = languageLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = brandSecondaryText
-                )
-            }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
 
-            exam.createdAt?.let { created ->
-                Text(
-                    text = created,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = brandSecondaryText
-                )
-            }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = exam.title,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
 
-            if (exam.hasOngoingJob && exam.progress != null && activeJobLabel != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-
-                val pDouble = exam.progress!!.coerceIn(0.0, 100.0)
-                val pFloat = (pDouble / 100.0).toFloat()
-
-                LinearProgressIndicator(
-                    progress = pFloat,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = stringResource(R.string.job_progress_fmt, pDouble.toInt()),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = brandSecondaryText
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (isDeleting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .size(18.dp)
-                            .padding(end = 8.dp),
-                        strokeWidth = 2.dp
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        when {
-                            exam.canViewResult -> onViewResult()
-                            exam.canTakeExam -> onTakeExam()
-                            else -> Unit
+                    // 메타데이터 아이콘 + 레이블 (Start 정렬로 복원)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp), // SpaceBetween 대신 간격 사용
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 문항 수
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.Quiz,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = brandSecondaryText
+                            )
+                            Text(
+                                text = "${exam.numQuestions}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = brandSecondaryText
+                            )
                         }
-                    },
-                    enabled = primaryEnabled && !isDeleting
-                ) {
-                    Text(primaryLabel)
-                }
+                        
+                        // 난이도
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.SignalCellularAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = brandSecondaryText
+                            )
+                            Text(
+                                text = difficultyLabel,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = brandSecondaryText
+                            )
+                        }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                        // 언어
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.Language,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = brandSecondaryText
+                            )
+                            Text(
+                                text = languageLabel,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = brandSecondaryText
+                            )
+                        }
+                    }
 
-                IconButton(
-                    onClick = onDelete,
-                    enabled = !isDeleting
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.action_delete)
-                    )
+                    // 날짜 표시 (제목 아래 혹은 메타데이터 아래로 이동)
+                    if (formattedDate.isNotBlank()) {
+                        Text(
+                            text = formattedDate,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = brandSecondaryText.copy(alpha = 0.7f)
+                        )
+                    }
+
+                    if (exam.hasOngoingJob && exam.progress != null && activeJobLabel != null) {
+                        // 진행 중 상태 표시 (기존 유지)
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            val pDouble = exam.progress!!.coerceIn(0.0, 100.0)
+                            val pFloat = (pDouble / 100.0).toFloat()
+
+                            LinearProgressIndicator(
+                                progress = pFloat,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp),
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                            Text(
+                                text = stringResource(R.string.job_progress_fmt, pDouble.toInt()),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = brandSecondaryText
+                            )
+                        }
+                    }
+
+                    // 하단 버튼 (Full Width)
+                    Button(
+                        onClick = {
+                            when {
+                                exam.canViewResult -> onViewResult()
+                                exam.canTakeExam -> onTakeExam()
+                                else -> Unit
+                            }
+                        },
+                        enabled = primaryEnabled && !isDeleting,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (exam.canViewResult) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
+                            contentColor = if (exam.canViewResult) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        if (isDeleting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text(primaryLabel)
+                    }
                 }
             }
         }
