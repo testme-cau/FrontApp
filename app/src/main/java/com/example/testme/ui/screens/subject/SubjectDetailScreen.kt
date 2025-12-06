@@ -108,7 +108,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.clip
-
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.List
 
 private enum class SubjectDetailTab {
     EXAMS, PDF
@@ -154,15 +155,10 @@ data class SubjectExamUi(
     val gradingProgress: Double?
 ) {
     val shortLabel: String
-        get() = "Exam #${examId.takeLast(6)}"
+        get() = "Exam #${examId.takeLast(6)}" // This is a fallback, so it's okay to be English/code-like
 
-    val activeJobLabel: String?
-        get() = when {
-            generationJobStatus == "processing" || generationJobStatus == "pending" -> "Generating..."
-            gradingJobStatus == "processing" || gradingJobStatus == "pending" -> "Grading..."
-            else -> null
-        }
-    
+    // activeJobLabel logic moved to composable to use stringResource
+
     val progress: Double?
         get() = when {
             generationJobStatus == "processing" || generationJobStatus == "pending" -> generationProgress
@@ -171,7 +167,7 @@ data class SubjectExamUi(
         }
 
     val hasOngoingJob: Boolean
-        get() = activeJobLabel != null
+        get() = (generationJobStatus == "processing" || generationJobStatus == "pending" || gradingJobStatus == "processing" || gradingJobStatus == "pending")
 
     val canViewResult: Boolean
         get() = gradingJobStatus == "completed"
@@ -260,9 +256,12 @@ class SubjectDetailViewModel(
         }
     }
 
-    fun loadPdfs() {
+    fun loadPdfs(clearExisting: Boolean = false) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(loadingPdfs = true)
+            _uiState.value = _uiState.value.copy(
+                loadingPdfs = true,
+                pdfs = if (clearExisting) emptyList() else _uiState.value.pdfs
+            )
             try {
                 val response: PdfListResponse =
                     apiService.getPdfsBySubject(bearer(), subjectId)
@@ -295,10 +294,14 @@ class SubjectDetailViewModel(
         }
     }
 
-    fun loadExams(forceRefresh: Boolean = false) {
+    fun loadExams(forceRefresh: Boolean = false, clearExisting: Boolean = false) {
         if (_uiState.value.loadingExams && !forceRefresh) return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(loadingExams = true, examsError = null)
+            _uiState.value = _uiState.value.copy(
+                loadingExams = true,
+                examsError = null,
+                exams = if (clearExisting) emptyList() else _uiState.value.exams
+            )
             try {
                 val examResponse: ExamListResponse =
                     apiService.getExamsBySubject(bearer(), subjectId)
@@ -572,22 +575,62 @@ fun SubjectDetailScreen(
                 Column(modifier = Modifier.fillMaxSize()) {
                     // 1. Header (Fixed)
                     Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        SubjectHeaderSection(
-                            name = uiState.subjectName,
-                            description = uiState.subjectDescription,
-                            groupName = uiState.groupName,
-                            colorHex = uiState.colorHex
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // List Button (Vertical: Icon + Text)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { navController.popBackStack() }
+                                    .padding(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.List,
+                                    contentDescription = stringResource(R.string.action_list),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = stringResource(R.string.action_list),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            // Subject Header Card
+                            Box(modifier = Modifier.weight(1f)) {
+                                SubjectHeaderSection(
+                                    name = uiState.subjectName,
+                                    description = uiState.subjectDescription,
+                                    groupName = uiState.groupName,
+                                    colorHex = uiState.colorHex
+                                )
+                            }
+                        }
                     }
 
                     // 2. Content (Scrollable)
                     val pullRefreshState = rememberPullToRefreshState()
-                    val isRefreshing = uiState.loadingExams && !uiState.loadingSubject // Simple check
+                    // 로딩 중이더라도 리스트가 비어 있을 때만 상단 로딩 인디케이터 표시
+                    val isRefreshing = when (selectedTab) {
+                        SubjectDetailTab.EXAMS -> uiState.loadingExams && uiState.exams.isEmpty()
+                        SubjectDetailTab.PDF -> uiState.loadingPdfs && uiState.pdfs.isEmpty()
+                    }
 
                     PullToRefreshBox(
                         state = pullRefreshState,
                         isRefreshing = isRefreshing,
-                        onRefresh = { viewModel.loadExams(forceRefresh = true) },
+                        onRefresh = {
+                            when (selectedTab) {
+                                SubjectDetailTab.EXAMS -> viewModel.loadExams(forceRefresh = true, clearExisting = true)
+                                SubjectDetailTab.PDF -> viewModel.loadPdfs(clearExisting = true)
+                            }
+                        },
                         modifier = Modifier.weight(1f)
                     ) {
                         LazyColumn(
@@ -1188,7 +1231,7 @@ private fun JobProgressBanner(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "생성/채점 중인 시험",
+                text = stringResource(R.string.ongoing_jobs_title),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
             )
 
@@ -1202,9 +1245,9 @@ private fun JobProgressBanner(
                     examFromList?.title?.takeIf { it.isNotBlank() },
 
                     if (!examId.isNullOrBlank())
-                        "시험 #${examId.takeLast(6)}"
+                        String.format("Exam #%s", examId.takeLast(6))
                     else null,
-                    "새 시험"
+                    stringResource(R.string.exam_new_default)
                 )
 
                 val examTitle = candidates.first()
@@ -1218,7 +1261,7 @@ private fun JobProgressBanner(
                         .padding(vertical = 4.dp)
                 ) {
                     Text(
-                        text = "$examTitle · 생성 중",
+                        text = stringResource(R.string.job_generating_fmt, examTitle),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -1228,7 +1271,7 @@ private fun JobProgressBanner(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${progressDouble.toInt()}% 진행 중",
+                        text = stringResource(R.string.job_progress_fmt, progressDouble.toInt()),
                         style = MaterialTheme.typography.bodySmall,
                         color = brandSecondaryText
                     )
@@ -1241,7 +1284,7 @@ private fun JobProgressBanner(
                 val examTitle = if (!rawTitle.isNullOrBlank()) {
                     rawTitle
                 } else {
-                    "시험 #${examId.takeLast(6)}"
+                    String.format("Exam #%s", examId.takeLast(6))
                 }
                 val progressDouble = (job.progressPercentage ?: 0.0).coerceIn(0.0, 100.0)
                 val progressFloat = (progressDouble / 100.0).toFloat()
@@ -1252,7 +1295,7 @@ private fun JobProgressBanner(
                         .padding(vertical = 4.dp)
                 ) {
                     Text(
-                        text = "$examTitle · 채점 중",
+                        text = stringResource(R.string.job_grading_fmt, examTitle),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -1262,7 +1305,7 @@ private fun JobProgressBanner(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${progressDouble.toInt()}% 진행 중",
+                        text = stringResource(R.string.job_progress_fmt, progressDouble.toInt()),
                         style = MaterialTheme.typography.bodySmall,
                         color = brandSecondaryText
                     )
@@ -1329,13 +1372,13 @@ private fun ExamListSection(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            "이 과목에는 아직 생성된 시험이 없습니다.",
+                            stringResource(R.string.exam_empty_title),
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.SemiBold
                             )
                         )
                         Text(
-                            "아래 '시험 생성' 버튼으로 첫 시험을 만들어 보세요.",
+                            stringResource(R.string.exam_empty_guide),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -1349,34 +1392,35 @@ private fun ExamListSection(
                 ) {
                     uiState.exams.forEach { exam ->
                         val isDeleting = uiState.deletingExamId == exam.examId
+                        val activeJobLabel = when {
+                            exam.generationJobStatus == "processing" || exam.generationJobStatus == "pending" -> stringResource(R.string.status_processing)
+                            exam.gradingJobStatus == "processing" || exam.gradingJobStatus == "pending" -> stringResource(R.string.status_grading)
+                            else -> null
+                        }
 
-                            ExamRow(
-                                exam = exam,
-                                accentColor = accentColor,
-                                isDeleting = isDeleting,
-                                onPrimary = {
-                                    when {
-                                        exam.canViewResult -> onViewResult(exam)
-                                        exam.canTakeExam -> onTakeExam(exam)
-                                        else -> Unit
-                                    }
-                                },
-                                onTakeExam = { onTakeExam(exam) },
-                                onViewResult = { onViewResult(exam) },
-                                onDelete = { onDeleteExam(exam) },
-                                difficultyLabel = when (exam.difficulty) {
-                                    "easy" -> stringResource(R.string.difficulty_easy)
-                                    "medium" -> stringResource(R.string.difficulty_medium)
-                                    "hard" -> stringResource(R.string.difficulty_hard)
-                                    else -> exam.difficulty ?: stringResource(R.string.difficulty_unknown)
-                                },
-                                languageLabel = exam.language ?: stringResource(R.string.language_unspecified),
-                                activeJobLabel = when {
-                                    exam.generationJobStatus == "processing" || exam.generationJobStatus == "pending" -> stringResource(R.string.status_processing)
-                                    exam.gradingJobStatus == "processing" || exam.gradingJobStatus == "pending" -> stringResource(R.string.status_grading)
-                                    else -> null
+                        ExamRow(
+                            exam = exam,
+                            accentColor = accentColor,
+                            isDeleting = isDeleting,
+                            onPrimary = {
+                                when {
+                                    exam.canViewResult -> onViewResult(exam)
+                                    exam.canTakeExam -> onTakeExam(exam)
+                                    else -> Unit
                                 }
-                            )
+                            },
+                            onTakeExam = { onTakeExam(exam) },
+                            onViewResult = { onViewResult(exam) },
+                            onDelete = { onDeleteExam(exam) },
+                            difficultyLabel = when (exam.difficulty) {
+                                "easy" -> stringResource(R.string.difficulty_easy)
+                                "medium" -> stringResource(R.string.difficulty_medium)
+                                "hard" -> stringResource(R.string.difficulty_hard)
+                                else -> exam.difficulty ?: stringResource(R.string.difficulty_unknown)
+                            },
+                            languageLabel = exam.language ?: stringResource(R.string.language_unspecified),
+                            activeJobLabel = activeJobLabel
+                        )
                     }
                 }
             }
@@ -1577,33 +1621,35 @@ private fun ExamRow(
                         }
                     }
 
-                    // 하단 버튼 (Full Width)
-                    Button(
-                        onClick = {
-                            when {
-                                exam.canViewResult -> onViewResult()
-                                exam.canTakeExam -> onTakeExam()
-                                else -> Unit
-                            }
-                        },
-                        enabled = primaryEnabled && !isDeleting,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (exam.canViewResult) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
-                            contentColor = if (exam.canViewResult) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        if (isDeleting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
+                        val containerColor = Color(0xFFE8F5E9)
+                        val contentColor = Color(0xFF2E7D32)
+
+                        Button(
+                            onClick = {
+                                when {
+                                    exam.canViewResult -> onViewResult()
+                                    exam.canTakeExam -> onTakeExam()
+                                    else -> Unit
+                                }
+                            },
+                            enabled = primaryEnabled && !isDeleting,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = containerColor,
+                                contentColor = contentColor
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                        ) {
+                            if (isDeleting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = contentColor
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Text(primaryLabel)
                         }
-                        Text(primaryLabel)
-                    }
                 }
             }
         }

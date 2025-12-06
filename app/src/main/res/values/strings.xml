@@ -59,6 +59,7 @@
     <string name="action_refresh">새로고침</string>
     <string name="action_delete">삭제</string>
     <string name="action_cancel">취소</string>
+    <string name="action_list">목록</string>
     <string name="action_upload_pdf">PDF 업로드</string>
     <string name="action_uploading">업로드 중...</string>
     <string name="action_generate_exam">시험 생성</string>
@@ -131,7 +132,7 @@
     <string name="generate_exam_title">시험 생성</string>
     <string name="loading_pdfs_title">자료 확인 중...</string>
     <string name="loading_pdfs_desc">AI가 PDF 목록을 불러오고 있어요.</string>
-    <string name="generate_desc">선택한 PDF를 기반으로 AI가 자동으로 시험을 생성합니다.</string>
+    <string name="generate_desc">모든 시험 기록을 AI가 분석해요 🧠\n당신에게 꼭 필요한 맞춤형 문제가 출제될 거예요 ✨</string>
     <string name="pdf_select_title">PDF 선택</string>
     <string name="pdf_select_all">전체 선택</string>
     <string name="pdf_deselect_all">전체 해제</string>
@@ -253,16 +254,29 @@
     <string name="msg_loading_result">결과 분석 중...</string>
     <string name="msg_loading_result_desc">AI가 채점 결과를 불러오고 있습니다.</string>
     <string name="msg_no_result_display">표시할 결과가 없습니다.</string>
+    <string name="label_total_score">총점</string>
+    <string name="label_total_score_with_pct">총점 (%s)</string>
+    <string name="label_accuracy">정답률</string>
+    <string name="label_ai_report">AI 분석 리포트</string>
+    <string name="label_overview">종합 평가</string>
     <string name="label_overall_feedback">총평</string>
     <string name="label_strengths">강점</string>
     <string name="label_weaknesses">약점</string>
+    <string name="label_learning_guide">학습 가이드</string>
+    <string name="label_score">점수</string>
+    <string name="label_no_answer">답변 없음</string>
+    <string name="label_language_with_value">언어 %s</string>
+    <string name="label_difficulty_with_value">난이도 %s</string>
     <string name="label_study_recommendations">학습 제안</string>
     <string name="label_question_fmt">문제 %d · %s</string>
+    <string name="label_question_simple_fmt">문제 %d</string>
     <string name="label_correct">정답</string>
     <string name="label_incorrect">오답</string>
     <string name="label_my_answer">내 답안</string>
     <string name="label_correct_answer">정답</string>
     <string name="label_model_answer">모범 답안</string>
     <string name="label_feedback">피드백</string>
+    <string name="action_collapse_feedback">피드백 접기</string>
+    <string name="action_expand_feedback">피드백 펼치기</string>
 
 </resources>

@@ -58,6 +58,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.testme.R
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.SubjectCreateRequest
@@ -83,6 +87,7 @@ fun NewSubjectScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
         viewModel.loadGroups()
@@ -114,6 +119,11 @@ fun NewSubjectScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        focusManager.clearFocus()
+                    })
+                }
         ) {
             // 부드러운 배경
             SoftBlobBackground()
@@ -166,7 +176,12 @@ fun NewSubjectScreen(
                             value = uiState.description,
                             onValueChange = { viewModel.updateDescription(it) },
                             label = { Text(stringResource(R.string.label_description)) },
-                            placeholder = { Text(stringResource(R.string.hint_subject_desc)) },
+                            placeholder = {
+                                Text(
+                                    text = stringResource(R.string.hint_subject_desc),
+                                    color = Color.Gray
+                                )
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(120.dp),
@@ -244,7 +259,7 @@ fun NewSubjectScreen(
                                     )
                                 }
                                 Text(
-                                    text = if (uiState.submitting) stringResource(R.string.action_generating) else stringResource(R.string.action_create_subject)
+                                    text = if (uiState.submitting) stringResource(R.string.action_generating) else "Create"
                                 )
                             }
 
@@ -346,14 +361,14 @@ fun ColorPaletteRow(
         colors.forEach { color ->
             val isSelected = color == selectedColor
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable { onColorSelected(color) }
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(CircleShape)
                         .background(color)
+                        .clickable { onColorSelected(color) }
                         .border(
                             width = if (isSelected) 2.dp else 0.dp,
                             color = if (isSelected)
@@ -368,7 +383,10 @@ fun ColorPaletteRow(
                     Text(
                         text = stringResource(R.string.label_selected),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Visible
                     )
                 }
             }

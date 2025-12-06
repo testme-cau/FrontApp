@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,7 +21,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,9 +51,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -86,11 +92,11 @@ data class GenerateExamUiState(
     val pdfs: List<PdfData> = emptyList(),
     val loadingPdfs: Boolean = false,
     val selectedPdfIds: Set<String> = emptySet(),
-    val numQuestions: Int = 10,
-    val difficulty: Difficulty = Difficulty.MEDIUM,
+    val numQuestions: Int = 5,
+    val difficulty: Difficulty = Difficulty.EASY,
     val languages: List<LanguageUi> = emptyList(),
     val loadingLanguages: Boolean = false,
-    val languageCode: String = "ko",
+    val languageCode: String = "en",
     val submitting: Boolean = false
 )
 
@@ -124,7 +130,9 @@ class GenerateExamViewModel(
             _uiState.value = _uiState.value.copy(loadingLanguages = true)
             try {
                 val res: LanguageListResponse = apiService.getSupportedLanguages()
-                val langs = res.languages.map {
+                val langs = res.languages
+                    .filter { it.code == "ko" || it.code == "en" } // Limit to KO and EN
+                    .map {
                     LanguageUi(
                         code = it.code,
                         name = it.name,
@@ -133,7 +141,7 @@ class GenerateExamViewModel(
                 }
                 val defaultCode = _uiState.value.languageCode.takeIf { code ->
                     langs.any { it.code == code }
-                } ?: langs.firstOrNull()?.code ?: "ko"
+                } ?: langs.firstOrNull()?.code ?: "en"
 
                 _uiState.value = _uiState.value.copy(
                     languages = langs,
@@ -335,11 +343,16 @@ fun GenerateExamScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 stringResource(R.string.generate_desc),
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                                    lineHeight = 20.sp
+                                ),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Start
                             )
                         }
                     }
@@ -347,8 +360,9 @@ fun GenerateExamScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.extraLarge,
-                        tonalElevation = 6.dp,
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                        tonalElevation = 0.dp,
+                        shadowElevation = 6.dp,
+                        color = Color.White,
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
                             subjectColor.copy(alpha = 0.2f)
@@ -357,18 +371,10 @@ fun GenerateExamScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        listOf(
-                                            subjectColor.copy(alpha = 0.16f),
-                                            Color.White.copy(alpha = 0.9f)
-                                        )
-                                    )
-                                )
                                 .padding(16.dp)
                         ) {
                             Column(
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalArrangement = Arrangement.spacedBy(4.dp) // Reduced spacing
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -408,7 +414,6 @@ fun GenerateExamScreen(
                                         Text(stringResource(R.string.action_go_to_subject))
                                     }
                                 } else {
-                                    Spacer(modifier = Modifier.height(8.dp))
                                     LazyColumn(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -437,8 +442,9 @@ fun GenerateExamScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.extraLarge,
-                        tonalElevation = 6.dp,
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                        tonalElevation = 0.dp,
+                        shadowElevation = 6.dp,
+                        color = Color.White,
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
                             subjectColor.copy(alpha = 0.18f)
@@ -447,14 +453,6 @@ fun GenerateExamScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        listOf(
-                                            Color.White.copy(alpha = 0.95f),
-                                            subjectColor.copy(alpha = 0.08f)
-                                        )
-                                    )
-                                )
                                 .padding(16.dp)
                         ) {
                             Column(
@@ -476,12 +474,22 @@ fun GenerateExamScreen(
                                         listOf(5, 10, 20).forEach { n ->
                                             val isSelected = uiState.numQuestions == n
                                             val buttonModifier = Modifier.weight(1f)
+                                            val color = when (n) {
+                                                5 -> Color(0xFF4CAF50) // Green
+                                                10 -> Color(0xFF2196F3) // Blue
+                                                20 -> Color(0xFFF44336) // Red
+                                                else -> MaterialTheme.colorScheme.primary
+                                            }
 
                                             if (isSelected) {
                                                 Button(
                                                     onClick = { viewModel.updateNumQuestions(n) },
                                                     enabled = !uiState.submitting,
-                                                    modifier = buttonModifier
+                                                    modifier = buttonModifier,
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = color,
+                                                        contentColor = Color.White
+                                                    )
                                                 ) {
                                                     Text("${n}" + stringResource(R.string.questions_suffix))
                                                 }
@@ -489,17 +497,18 @@ fun GenerateExamScreen(
                                                 OutlinedButton(
                                                     onClick = { viewModel.updateNumQuestions(n) },
                                                     enabled = !uiState.submitting,
-                                                    modifier = buttonModifier
+                                                    modifier = buttonModifier,
+                                                    colors = ButtonDefaults.outlinedButtonColors(
+                                                        contentColor = Color.Black
+                                                    ),
+                                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray)
                                                 ) {
                                                     Text("${n}" + stringResource(R.string.questions_suffix))
                                                 }
                                             }
                                         }
                                     }
-                                    Text(
-                                        stringResource(R.string.current_option_fmt, "${uiState.numQuestions}" + stringResource(R.string.questions_suffix)),
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                    // Current label removed
                                 }
 
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -517,34 +526,50 @@ fun GenerateExamScreen(
                                                 Difficulty.HARD -> stringResource(R.string.difficulty_hard)
                                             }
 
+                                            val color = when (diff) {
+                                                Difficulty.EASY -> Color(0xFF4CAF50)
+                                                Difficulty.MEDIUM -> Color(0xFF2196F3)
+                                                Difficulty.HARD -> Color(0xFFF44336)
+                                            }
+
                                             if (isSelected) {
                                                 Button(
                                                     onClick = { viewModel.updateDifficulty(diff) },
                                                     enabled = !uiState.submitting,
-                                                    modifier = buttonModifier
+                                                    modifier = buttonModifier,
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = color,
+                                                        contentColor = Color.White
+                                                    ),
+                                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                                                 ) {
-                                                    Text(label)
+                                                    Text(
+                                                        text = label,
+                                                        maxLines = 1,
+                                                        overflow = androidx.compose.ui.text.style.TextOverflow.Visible
+                                                    )
                                                 }
                                             } else {
                                                 OutlinedButton(
                                                     onClick = { viewModel.updateDifficulty(diff) },
                                                     enabled = !uiState.submitting,
-                                                    modifier = buttonModifier
+                                                    modifier = buttonModifier,
+                                                    colors = ButtonDefaults.outlinedButtonColors(
+                                                        contentColor = Color.Black
+                                                    ),
+                                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray),
+                                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                                                 ) {
-                                                    Text(label)
+                                                    Text(
+                                                        text = label,
+                                                        maxLines = 1,
+                                                        overflow = androidx.compose.ui.text.style.TextOverflow.Visible
+                                                    )
                                                 }
                                             }
                                         }
                                     }
-                                    val currentDiffLabel = when (uiState.difficulty) {
-                                        Difficulty.EASY -> stringResource(R.string.difficulty_easy)
-                                        Difficulty.MEDIUM -> stringResource(R.string.difficulty_medium)
-                                        Difficulty.HARD -> stringResource(R.string.difficulty_hard)
-                                    }
-                                    Text(
-                                        stringResource(R.string.current_option_fmt, currentDiffLabel),
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                    // Current label removed
                                 }
 
                                 LanguageSelector(
@@ -604,6 +629,7 @@ private fun LanguageSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedLang = languages.firstOrNull { it.code == selectedCode }
+    val pastelMint = Color(0xFFE8F5E9) // Soft Mint Pastel Color
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(stringResource(R.string.option_language), style = MaterialTheme.typography.labelMedium)
@@ -634,14 +660,27 @@ private fun LanguageSelector(
 
             else -> {
                 Box {
-                    OutlinedButton(
+                    val emoji = when(selectedCode) {
+                        "ko" -> "🇰🇷"
+                        "en" -> "🇺🇸"
+                        else -> "🌐"
+                    }
+                    
+                    Button(
                         onClick = { if (enabled) expanded = true },
                         enabled = enabled,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = pastelMint,
+                            contentColor = Color.Black
+                        ),
+                        shape = MaterialTheme.shapes.large
                     ) {
                         Text(
-                            selectedLang?.nativeName ?: selectedCode.uppercase(),
-                            style = MaterialTheme.typography.bodyMedium
+                            text = "$emoji  ${selectedLang?.nativeName ?: selectedCode.uppercase()}",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            )
                         )
                     }
 
@@ -650,9 +689,14 @@ private fun LanguageSelector(
                         onDismissRequest = { expanded = false }
                     ) {
                         languages.forEach { lang ->
+                            val langEmoji = when(lang.code) {
+                                "ko" -> "🇰🇷"
+                                "en" -> "🇺🇸"
+                                else -> "🌐"
+                            }
                             DropdownMenuItem(
                                 text = {
-                                    Text(stringResource(R.string.label_language_code_fmt, lang.nativeName, lang.code.uppercase()))
+                                    Text("$langEmoji  ${lang.nativeName} (${lang.code.uppercase()})")
                                 },
                                 onClick = {
                                     onSelect(lang.code)
@@ -662,11 +706,6 @@ private fun LanguageSelector(
                         }
                     }
                 }
-
-                Text(
-                    text = stringResource(R.string.selected_language_fmt, (selectedLang?.nativeName ?: selectedCode.uppercase())),
-                    style = MaterialTheme.typography.bodySmall
-                )
             }
         }
     }
@@ -680,45 +719,60 @@ private fun PdfSelectableItem(
     onClick: () -> Unit,
     accentColor: Color
 ) {
+    // Colors based on selection state
+    val containerColor = if (selected) Color(0xFFE3F2FD) else Color.White
+    val borderColor = if (selected) Color(0xFF2196F3) else Color.LightGray.copy(alpha = 0.5f)
+    val iconColor = if (selected) Color(0xFF2196F3) else Color.LightGray
+
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick),
-        shape = MaterialTheme.shapes.large,
-        tonalElevation = if (selected) 4.dp else 1.dp,
-        color = if (selected)
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
-        else
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-        border = if (selected)
-            androidx.compose.foundation.BorderStroke(
-                1.dp,
-                accentColor.copy(alpha = 0.5f)
-            )
-        else
-            null
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = if (selected) 4.dp else 1.dp,
+        color = containerColor,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            borderColor
+        )
     ) {
-        Row(
+        // Box wrapper for Ripple Clip
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .clip(RoundedCornerShape(16.dp))
+                .clickable(enabled = enabled, onClick = onClick)
+                .padding(16.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(pdf.originalFilename, style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    text = String.format("%.2f MB", pdf.size / 1024f / 1024f),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            if (selected) {
-                Text(
-                    text = "✓",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        color = accentColor
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = pdf.originalFilename,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
-                )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                if (selected) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Selected",
+                        tint = iconColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.RadioButtonUnchecked,
+                        contentDescription = "Unselected",
+                        tint = iconColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
     }

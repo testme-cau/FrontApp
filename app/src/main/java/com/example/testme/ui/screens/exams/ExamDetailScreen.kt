@@ -15,21 +15,34 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.testme.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import androidx.navigation.NavController
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.rememberCoroutineScope
@@ -80,6 +93,15 @@ class ExamDetailViewModel(
     private val _uiState = MutableStateFlow(ExamDetailUiState())
     val uiState: StateFlow<ExamDetailUiState> = _uiState
 
+    private fun formatDateTime(context: android.content.Context, raw: String?): String {
+        if (raw.isNullOrBlank()) return context.getString(R.string.unknown)
+        val formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm", Locale.getDefault())
+        val formatted = runCatching {
+            Instant.parse(raw).atZone(ZoneId.systemDefault()).format(formatter)
+        }.getOrNull()
+        return formatted ?: raw
+    }
+
     fun loadDetail(context: android.content.Context) {
         if (_uiState.value.loading) return
 
@@ -111,7 +133,8 @@ class ExamDetailViewModel(
                 }
 
                 val languageLabel: String = exam.language ?: context.getString(R.string.language_unspecified)
-                val metaLabel = context.getString(R.string.meta_exam_detail_fmt, exam.numQuestions, exam.createdAt)
+                val formattedCreatedAt = formatDateTime(context, exam.createdAt)
+                val metaLabel = context.getString(R.string.meta_exam_detail_fmt, exam.numQuestions, formattedCreatedAt)
 
                 val header = ExamDetailHeaderUi(
                     title = exam.title ?: "",
@@ -360,24 +383,23 @@ fun ExamDetailScreen(
                     val header = uiState.header!!
 
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        item {
-                            ExamResultSummaryCard(
-                                header = header,
-                                accentColor = subjectColor
-                            )
-                        }
+                item {
+                    ExamResultSummaryCard(
+                        header = header,
+                        accentColor = subjectColor
+                    )
+                }
 
-                        items(uiState.questions) { q ->
-                            QuestionResultCard(
-                                result = q,
-                                accentColor = subjectColor
-                            )
-                        }
+                items(uiState.questions) { q ->
+                    QuestionResultCard(
+                        result = q,
+                        accentColor = subjectColor
+                    )
+                }
 
                         item {
                             Spacer(modifier = Modifier.height(72.dp))
@@ -409,130 +431,176 @@ private fun ExamResultSummaryCard(
     header: ExamDetailHeaderUi,
     accentColor: Color
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        tonalElevation = 8.dp,
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.25f)),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .background(
-                    brush = Brush.linearGradient(
-                        listOf(
-                            accentColor.copy(alpha = 0.16f),
-                            Color.White.copy(alpha = 0.9f)
-                        )
-                    )
-                )
-                .padding(18.dp)
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = header.title,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.ExtraBold
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = header.title,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF0F241B)
-                    )
-                )
-
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = header.scoreLabel,
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFF1E4032)
-                        )
-                    )
-                    ResultPill(
-                        label = header.percentageLabel,
-                        color = accentColor
-                    )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SmallChip("난이도 ${header.difficultyLabel}")
-                    SmallChip(header.languageLabel)
-                }
-
-                Text(
-                    text = header.metaLabel,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = Color(0xFF1E4032).copy(alpha = 0.75f)
-                    )
-                )
-
-                if (header.overallFeedback.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    SectionTitle(stringResource(R.string.label_overall_feedback), accentColor)
-                    Text(
-                        text = header.overallFeedback,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                if (header.strengths.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    SectionTitle(stringResource(R.string.label_strengths), accentColor)
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        header.strengths.forEach { s ->
-                            Text("• $s", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-
-                if (header.weaknesses.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    SectionTitle(stringResource(R.string.label_weaknesses), accentColor)
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        header.weaknesses.forEach { w ->
-                            Text("• $w", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-
-                if (header.studyRecommendations.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    SectionTitle(stringResource(R.string.label_study_recommendations), accentColor)
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        header.studyRecommendations.forEach { r ->
-                            Text("• $r", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
+                SmallChip(stringResource(R.string.label_difficulty_with_value, header.difficultyLabel))
+                SmallChip(stringResource(R.string.label_language_with_value, header.languageLabel))
             }
+            Text(
+                text = header.metaLabel,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                )
+            )
+        }
+
+        StatCard(
+            title = stringResource(R.string.label_total_score_with_pct, header.percentageLabel),
+            value = header.scoreLabel,
+            accentColor = accentColor
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionTitle(stringResource(R.string.label_ai_report), Color.Black)
+
+            // Overview Card
+            HighlightCard(
+                title = stringResource(R.string.label_overview),
+                items = listOf(header.overallFeedback.ifBlank { stringResource(R.string.msg_no_result_display) }),
+                leadingIcon = Icons.Filled.Info,
+                containerColor = Color(0xFFEFF6FF), // Light Blue
+                borderColor = Color(0xFFDBEAFE),
+                accentTextColor = Color(0xFF1E3A8A),
+                isBulleted = false
+            )
+
+            HighlightCard(
+                title = stringResource(R.string.label_strengths),
+                items = header.strengths,
+                leadingIcon = Icons.Filled.CheckCircle,
+                containerColor = Color(0xFFF0FDF4), // Light Green
+                borderColor = Color(0xFFDCFCE7),
+                accentTextColor = Color(0xFF166534)
+            )
+            HighlightCard(
+                title = stringResource(R.string.label_weaknesses),
+                items = header.weaknesses,
+                leadingIcon = Icons.Filled.Cancel,
+                containerColor = Color(0xFFFEF2F2), // Light Red
+                borderColor = Color(0xFFFEE2E2),
+                accentTextColor = Color(0xFF991B1B)
+            )
+            HighlightCard(
+                title = stringResource(R.string.label_learning_guide),
+                items = header.studyRecommendations,
+                leadingIcon = Icons.Filled.Lightbulb,
+                containerColor = Color(0xFFEFF6FF), // Light Blue/Indigo
+                borderColor = Color(0xFFDBEAFE),
+                accentTextColor = Color(0xFF1E40AF)
+            )
         }
     }
 }
 
 @Composable
-private fun ResultPill(label: String, color: Color) {
+private fun StatCard(
+    title: String,
+    value: String,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
-            .background(
-                brush = Brush.horizontalGradient(
-                    listOf(color.copy(alpha = 0.9f), color.copy(alpha = 0.6f))
-                ),
-                shape = RoundedCornerShape(999.dp)
-            )
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFFF7FAFF))
+            .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium.copy(
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
             )
-        )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun HighlightCard(
+    title: String,
+    items: List<String>,
+    leadingIcon: ImageVector,
+    containerColor: Color,
+    borderColor: Color,
+    accentTextColor: Color = MaterialTheme.colorScheme.onSurface,
+    isBulleted: Boolean = true
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = containerColor,
+        border = BorderStroke(1.dp, borderColor)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    tint = accentTextColor
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = accentTextColor
+                    )
+                )
+            }
+
+            if (items.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.msg_no_result_display),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    items.forEach { item ->
+                        val text = if (isBulleted) "• $item" else item
+                        Text(
+                            text = text,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.2f
+                            )
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -563,124 +631,242 @@ private fun SmallChip(text: String) {
 }
 
 @Composable
+private fun InfoChip(text: String) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            text = text,
+            style = MaterialTheme.typography.labelSmall.copy(
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        )
+    }
+}
+
+@Composable
+private fun ScoreBadge(
+    text: String,
+    accentColor: Color,
+    isCorrect: Boolean,
+    containerColor: Color,
+    textColor: Color = Color.Black
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = containerColor,
+        border = BorderStroke(1.dp, Color.Transparent) // No border for score badge in reference
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            text = text,
+            maxLines = 1,
+            style = MaterialTheme.typography.labelLarge.copy( // Slightly smaller font
+                fontWeight = FontWeight.Bold,
+                color = textColor
+            )
+        )
+    }
+}
+
+@Composable
+private fun ScoreText(
+    text: String,
+    isCorrect: Boolean?
+) {
+    val textColor = when (isCorrect) {
+        true -> Color(0xFF166534) // Green
+        false -> Color(0xFF991B1B) // Red
+        else -> Color(0xFFD97706) // Orange (Partial/Unknown)
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium.copy(
+            fontWeight = FontWeight.Bold,
+            color = textColor
+        )
+    )
+}
+
+@Composable
+private fun AnswerSection(
+    label: String,
+    content: String?,
+    indicatorColor: Color
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp) // Spacing between bar and text
+    ) {
+        // Vertical Indicator Bar
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(IntrinsicSize.Min) // Will not work directly in Row, height needs constraints.
+                // Instead, let's use a trick or fixed height logic.
+                // Actually, if we want it to stretch with content, we need IntrinsicSize.Min on the Row.
+                // But simplified: just a box that spans the height of the content?
+                // Compose Row doesn't support "match parent height" easily without intrinsics.
+                // Let's use a simpler approach:
+                // A Column for text, and draw behind or a box alongside.
+                // Let's try IntrinsicSize.Min on Row.
+        )
+        
+        // Correct implementation using Intrinsic measurements
+    }
+}
+
+@Composable
+private fun LabeledTextWithBar(
+    label: String,
+    value: String?,
+    indicatorColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min), // Allows children to match height
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Indicator Bar
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(2.dp)
+                .background(indicatorColor)
+        )
+        
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall.copy( // Label is small
+                    fontWeight = FontWeight.Medium,
+                    color = if (label == stringResource(R.string.label_my_answer)) Color.Gray else indicatorColor // "My Answer" label is gray in reference
+                )
+            )
+            Text(
+                text = value ?: stringResource(R.string.label_no_answer),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.4f // Comfortable reading line height
+                )
+            )
+        }
+    }
+}
+
+@Composable
 private fun QuestionResultCard(
     result: QuestionResultUi,
     accentColor: Color
 ) {
+    var isExpanded by remember { mutableStateOf(true) } // Default expanded as per reference showing "Collapse"
+    val borderColor = Color(0xFFE5E7EB) // Light gray border
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        tonalElevation = 4.dp,
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.18f)),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
+        shape = RoundedCornerShape(16.dp), // Reduced corner radius
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = BorderStroke(1.dp, borderColor),
+        color = Color.White
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(20.dp), // Generous padding
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header: Title & Score
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Column {
-                    Text(
-                        text = stringResource(R.string.label_question_fmt, result.index, result.typeLabel),
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    )
-                    result.pointsLabel?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = Color(0xFF1E4032).copy(alpha = 0.7f)
-                            )
-                        )
-                    }
-                }
-
-                result.isCorrect?.let { isCorrect ->
-                    val label = if (isCorrect) stringResource(R.string.label_correct) else stringResource(R.string.label_incorrect)
-                    val color = if (isCorrect) accentColor else MaterialTheme.colorScheme.error
-
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                color.copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(999.dp)
-                            )
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = color
-                            )
-                        )
-                    }
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(R.string.label_question_simple_fmt, result.index),
+                    style = MaterialTheme.typography.titleLarge.copy( // Larger title
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color.Black
+                )
+                result.scoreLabel?.let {
+                    ScoreText(text = it, isCorrect = result.isCorrect)
                 }
             }
 
-            Text(
-                text = result.questionText,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.SemiBold
-                )
-            )
-
-            result.scoreLabel?.let {
-                Spacer(modifier = Modifier.height(4.dp))
+            // Question Text
+            SelectionContainer {
                 Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1E4032)
+                    text = result.questionText,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = Color(0xFF374151), // Dark gray text
+                        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.4f
                     )
                 )
             }
+            
+            Spacer(modifier = Modifier.height(4.dp))
 
-            result.userAnswerLabel?.let {
-                Spacer(modifier = Modifier.height(4.dp))
-                SectionTitle(stringResource(R.string.label_my_answer), accentColor)
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall
+            // My Answer Section
+            SelectionContainer {
+                LabeledTextWithBar(
+                    label = stringResource(R.string.label_my_answer),
+                    value = result.userAnswerLabel,
+                    indicatorColor = Color(0xFFD1D5DB) // Gray bar
                 )
             }
 
-            result.correctAnswerLabel?.let {
-                Spacer(modifier = Modifier.height(4.dp))
-                SectionTitle(stringResource(R.string.label_correct_answer), accentColor)
+            // Toggle Button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(4.dp))
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
                 Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall
+                    text = if (isExpanded) stringResource(R.string.action_collapse_feedback) else stringResource(R.string.action_expand_feedback),
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
                 )
             }
 
-            result.modelAnswer?.let {
-                Spacer(modifier = Modifier.height(4.dp))
-                SectionTitle(stringResource(R.string.label_model_answer), accentColor)
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
+            // Expandable Section (Model Answer & Feedback)
+            if (isExpanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    result.modelAnswer?.let {
+                        SelectionContainer {
+                            LabeledTextWithBar(
+                                label = stringResource(R.string.label_model_answer),
+                                value = it,
+                                indicatorColor = Color(0xFF10B981) // Green bar
+                            )
+                        }
+                    }
 
-            result.feedback?.let {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.label_feedback),
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = accentColor
-                    )
-                )
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                    result.feedback?.let {
+                        SelectionContainer {
+                            LabeledTextWithBar(
+                                label = stringResource(R.string.label_feedback),
+                                value = it,
+                                indicatorColor = Color(0xFF3B82F6) // Blue bar
+                            )
+                        }
+                    }
+                }
             }
         }
     }

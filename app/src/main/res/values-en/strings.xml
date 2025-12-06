@@ -59,6 +59,7 @@
     <string name="action_refresh">Refresh</string>
     <string name="action_delete">Delete</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_list">List</string>
     <string name="action_upload_pdf">Upload PDF</string>
     <string name="action_uploading">Uploading...</string>
     <string name="action_generate_exam">Generate Exam</string>
@@ -129,7 +130,7 @@
     <string name="generate_exam_title">Generate Exam</string>
     <string name="loading_pdfs_title">Checking resources...</string>
     <string name="loading_pdfs_desc">AI is loading the PDF list.</string>
-    <string name="generate_desc">AI will automatically generate an exam based on selected PDFs.</string>
+    <string name="generate_desc">AI analyzes your entire exam history 🧠\nExpect personalized questions tailored just for you ✨</string>
     <string name="pdf_select_title">Select PDFs</string>
     <string name="pdf_select_all">Select All</string>
     <string name="pdf_deselect_all">Deselect All</string>
@@ -230,4 +231,42 @@
     <string name="action_open_external">Open in External App</string>
     <string name="action_download_pdf">Download PDF</string>
     <string name="msg_no_pdf_info">No PDF info to display.</string>
+    
+    <!-- Exam Detail -->
+    <string name="msg_no_grading_result">No grading result.</string>
+    <string name="score_fmt">%.1f / %.1f pts</string>
+    <string name="percentage_fmt">%.1f%%</string>
+    <string name="meta_exam_detail_fmt">%d questions · Created at %s</string>
+    <string name="label_points_fmt">%d pts</string>
+    <string name="score_simple_fmt">%d / %d pts</string>
+    <string name="msg_question_load_fail">Failed to load question.</string>
+    <string name="msg_load_result_fail">Failed to load result.</string>
+    <string name="title_exam_result">Exam Result</string>
+    <string name="msg_loading_result">Analyzing result...</string>
+    <string name="msg_loading_result_desc">AI is fetching the grading result.</string>
+    <string name="msg_no_result_display">No result to display.</string>
+    <string name="label_total_score">Total Score</string>
+    <string name="label_total_score_with_pct">Total Score (%s)</string>
+    <string name="label_accuracy">Accuracy</string>
+    <string name="label_ai_report">AI Analysis Report</string>
+    <string name="label_overview">Overall Evaluation</string>
+    <string name="label_overall_feedback">Overall Feedback</string>
+    <string name="label_strengths">Strengths</string>
+    <string name="label_weaknesses">Weaknesses</string>
+    <string name="label_learning_guide">Study Guide</string>
+    <string name="label_score">Score</string>
+    <string name="label_no_answer">No answer</string>
+    <string name="label_language_with_value">Language %s</string>
+    <string name="label_difficulty_with_value">Difficulty %s</string>
+    <string name="label_study_recommendations">Study Recommendations</string>
+    <string name="label_question_fmt">Question %d · %s</string>
+    <string name="label_question_simple_fmt">Question %d</string>
+    <string name="label_correct">Correct</string>
+    <string name="label_incorrect">Incorrect</string>
+    <string name="label_my_answer">My Answer</string>
+    <string name="label_correct_answer">Correct Answer</string>
+    <string name="label_model_answer">Model Answer</string>
+    <string name="label_feedback">Feedback</string>
+    <string name="action_collapse_feedback">Collapse Feedback</string>
+    <string name="action_expand_feedback">Expand Feedback</string>
 </resources>
