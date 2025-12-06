@@ -62,7 +62,8 @@ import com.example.testme.data.model.LanguageListResponse
 import com.example.testme.data.model.PdfData
 import com.example.testme.data.model.PdfListResponse
 import com.example.testme.ui.navigation.Screen
-import com.example.testme.ui.screens.home.SoftBlobBackground
+import com.example.testme.ui.components.SoftBlobBackground
+import com.example.testme.ui.components.TestMeTopAppBar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -257,28 +258,16 @@ fun GenerateExamScreen(
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "시험 생성",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
-                        )
-                    )
-                },
+            TestMeTopAppBar(
+                title = "시험 생성",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "뒤로가기",
-                            tint = Color(0xFF1E4032)
+                            contentDescription = "뒤로가기"
                         )
                     }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = Color(0xFF1E4032)
-                )
+                }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }

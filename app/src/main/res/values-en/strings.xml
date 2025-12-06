@@ -1,0 +1,163 @@
+<resources>
+    <string name="app_name">Testme</string>
+    <string name="profile_title">Profile</string>
+    <string name="label_name">Name</string>
+    <string name="label_email">Email</string>
+    <string name="label_language">Language</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_save">Save</string>
+    <string name="action_logout">Logout</string>
+    <string name="no_name">No Name</string>
+    <string name="unknown">Unknown</string>
+    <string name="loading_languages">Loading languages...</string>
+    <string name="language_ko">Korean</string>
+    <string name="language_en">English</string>
+    <string name="desc_profile_icon">Profile Icon</string>
+    <string name="msg_profile_save_failed">Failed to save profile.</string>
+
+    <!-- Home Screen -->
+    <string name="home_subtitle">AI-powered Custom Exam Platform</string>
+    <string name="home_btn_exam">🧾 Exam</string>
+    <string name="home_btn_profile">👤 My Profile</string>
+    <string name="home_powered_by">Powered by GPT-5 &amp; Gemini</string>
+
+    <!-- Login & Auth -->
+    <string name="login_title">Login</string>
+    <string name="login_method_select">Choose a login method</string>
+    <string name="login_email_password">Email / Password Login</string>
+    <string name="login_google_loading">Logging in with Google...</string>
+    <string name="login_google_continue">Continue with Google</string>
+    <string name="login_google_cancel">Google login cancelled.</string>
+    <string name="login_google_fail">Google login failed: %s</string>
+
+    <string name="email_login_title">Email Login</string>
+    <string name="email_label">Email</string>
+    <string name="password_label">Password</string>
+    <string name="login_btn">Login</string>
+    <string name="login_btn_loading">Logging in...</string>
+    <string name="signup_link">No account? Sign up</string>
+    <string name="signup_prompt">No account?</string>
+    <string name="signup_action">Sign up</string>
+    <string name="login_fail_prefix">Login failed: %s</string>
+
+    <string name="signup_title">Sign Up</string>
+    <string name="password_confirm_label">Confirm Password</string>
+    <string name="signup_btn">Sign Up</string>
+    <string name="signup_btn_loading">Signing up...</string>
+    <string name="login_link">Already have an account? Login</string>
+    <string name="login_prompt">Already have an account?</string>
+    <string name="login_action">Login</string>
+    <string name="signup_success">Sign up complete</string>
+    <string name="signup_fail_prefix">Sign up failed: %s</string>
+    <string name="password_mismatch">Passwords do not match</string>
+    <string name="password_length_error">Password must be 7-13 characters</string>
+    <string name="password_char_error">Must contain both letters and numbers</string>
+    <string name="app_subtitle_short">AI-powered Exam Platform</string>
+
+    <!-- Common Actions -->
+    <string name="action_back">Back</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_upload_pdf">Upload PDF</string>
+    <string name="action_uploading">Uploading...</string>
+    <string name="action_generate_exam">Generate Exam</string>
+    <string name="action_generating">Generating...</string>
+    <string name="action_view_result">View Result</string>
+    <string name="action_take_exam">Take Exam</string>
+    <string name="action_submit">Submit Exam</string>
+    <string name="action_submitting">Submitting...</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_go_to_subject">Go to Subject</string>
+
+    <!-- Status & Types -->
+    <string name="status_processing">Generating</string>
+    <string name="status_grading">Grading</string>
+    <string name="status_draft">Draft</string>
+    <string name="status_ready">Ready</string>
+    <string name="status_in_progress">In Progress</string>
+    <string name="status_active">Active</string>
+    <string name="status_unknown">Unknown</string>
+
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_medium">Medium</string>
+    <string name="difficulty_hard">Hard</string>
+    <string name="difficulty_unknown">Unknown</string>
+
+    <string name="qtype_multiple_choice">Multiple Choice</string>
+    <string name="qtype_short_answer">Short Answer</string>
+    <string name="qtype_essay">Essay</string>
+    <string name="qtype_unknown">Subjective</string>
+
+    <!-- Subject Detail -->
+    <string name="subject_detail_title">Subject Details</string>
+    <string name="subject_color_desc">This color is used for subject cards and UI.</string>
+    <string name="tab_exams">Exams</string>
+    <string name="tab_pdf">PDF</string>
+    <string name="ongoing_jobs_title">Ongoing Jobs</string>
+    <string name="job_generating_fmt">%1$s · Generating</string>
+    <string name="job_grading_fmt">%1$s · Grading</string>
+    <string name="job_progress_fmt">%1$d%% In Progress</string>
+    <string name="exam_list_title">Exam List</string>
+    <string name="exam_empty_title">No exams created yet.</string>
+    <string name="exam_empty_guide">Create your first exam using the button below.</string>
+    <string name="exam_new_default">New Exam</string>
+    <string name="exam_number_fmt">Exam #%s</string>
+    <string name="exam_questions_fmt">%d Questions</string>
+    <string name="exam_difficulty_fmt">Difficulty %s</string>
+    <string name="language_unspecified">Language Unspecified</string>
+
+    <string name="pdf_section_title">PDF Files</string>
+    <string name="pdf_section_desc">Exams are generated based on uploaded PDFs.</string>
+    <string name="pdf_upload_progress_fmt">Uploading %1$d / %2$d files</string>
+    <string name="pdf_empty">No PDFs uploaded.</string>
+    <string name="pdf_empty_guide">Use the top right button to upload PDFs.</string>
+    <string name="pdf_upload_success">PDF upload complete</string>
+    <string name="pdf_upload_fail">PDF upload failed: %s</string>
+    <string name="pdf_delete_title">Delete PDF</string>
+    <string name="pdf_delete_confirm">Delete "%s"? This cannot be undone.</string>
+    <string name="pdf_delete_success">Deleted successfully</string>
+    <string name="pdf_delete_fail">Delete failed: %s</string>
+
+    <string name="exam_delete_title">Delete Exam</string>
+    <string name="exam_delete_confirm">Delete exam "%s"? This cannot be undone.</string>
+    <string name="exam_delete_success">Exam deleted.</string>
+    <string name="exam_delete_fail">Failed to delete exam.</string>
+    <string name="exam_list_load_fail">Failed to load exam list.</string>
+
+    <!-- Generate Exam -->
+    <string name="generate_exam_title">Generate Exam</string>
+    <string name="loading_pdfs_title">Checking resources...</string>
+    <string name="loading_pdfs_desc">AI is loading the PDF list.</string>
+    <string name="generate_desc">AI will automatically generate an exam based on selected PDFs.</string>
+    <string name="pdf_select_title">Select PDFs</string>
+    <string name="pdf_select_all">Select All</string>
+    <string name="pdf_deselect_all">Deselect All</string>
+    <string name="generate_empty_pdfs">No PDFs uploaded. Please upload PDFs in the subject screen first.</string>
+    <string name="selected_pdfs_count_fmt">Selected: %d</string>
+    <string name="option_title">Options</string>
+    <string name="option_num_questions">Questions</string>
+    <string name="option_difficulty">Difficulty</string>
+    <string name="option_language">Language</string>
+    <string name="current_option_fmt">Current: %s</string>
+    <string name="questions_suffix">Q</string>
+    <string name="language_loading">Loading languages...</string>
+    <string name="language_load_fail">Failed to load languages. Default: %s</string>
+    <string name="selected_language_fmt">Selected: %s</string>
+    <string name="min_pdf_error">Please select at least 1 PDF.</string>
+    <string name="generate_start_success">Exam generation started.</string>
+    <string name="generate_fail">Failed to generate exam.</string>
+
+    <!-- Take Exam -->
+    <string name="take_exam_title">Take Exam</string>
+    <string name="loading_exam_title">Loading Exam...</string>
+    <string name="loading_exam_desc">AI is organizing questions.</string>
+    <string name="exam_load_empty">No questions loaded.</string>
+    <string name="exam_load_fail">Failed to load exam info.</string>
+    <string name="exam_submit_confirm_title">Submit Exam</string>
+    <string name="exam_submit_confirm_msg">Submit exam? Answers cannot be changed after submission.</string>
+    <string name="exam_submitted_success">Exam submitted. Grading in progress.</string>
+    <string name="exam_submit_fail">Failed to submit exam.</string>
+    <string name="hint_answer_input">Enter your answer</string>
+    <string name="msg_error_generic">An error occurred.</string>
+</resources>

@@ -59,7 +59,8 @@ import com.example.testme.data.model.ExamAnswerPayload
 import com.example.testme.data.model.ExamDetailResponse
 import com.example.testme.data.model.ExamQuestion
 import com.example.testme.data.model.ExamSubmitResponse
-import com.example.testme.ui.screens.home.SoftBlobBackground
+import com.example.testme.ui.components.SoftBlobBackground
+import com.example.testme.ui.components.TestMeTopAppBar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -89,21 +90,13 @@ fun TakeExamScreen(
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        uiState.title.ifBlank { "시험 응시" },
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
-                        )
-                    )
-                },
+            TestMeTopAppBar(
+                title = uiState.title.ifBlank { "시험 응시" },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "뒤로가기",
-                            tint = Color(0xFF1E4032)
+                            contentDescription = "뒤로가기"
                         )
                     }
                 },
@@ -114,15 +107,10 @@ fun TakeExamScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "새로고침",
-                            tint = Color(0xFF1E4032)
+                            contentDescription = "새로고침"
                         )
                     }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = Color(0xFF1E4032)
-                )
+                }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }

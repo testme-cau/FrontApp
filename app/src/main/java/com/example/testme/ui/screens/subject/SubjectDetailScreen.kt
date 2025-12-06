@@ -68,6 +68,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.ExamListResponse
@@ -78,6 +79,9 @@ import com.example.testme.data.model.PdfDeleteResponse
 import com.example.testme.data.model.PdfListResponse
 import com.example.testme.data.model.SubjectResponse
 import com.example.testme.ui.navigation.Screen
+import androidx.compose.ui.res.stringResource
+import com.example.testme.R
+import com.example.testme.ui.components.SoftBlobBackground
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -135,42 +139,21 @@ data class SubjectExamUi(
     val gradingProgress: Double?
 ) {
     val shortLabel: String
-        get() = "시험 #${examId.takeLast(6)}"
+        get() = "Exam #${examId.takeLast(6)}"
 
     val activeJobLabel: String?
         get() = when {
-            generationJobStatus == "processing" || generationJobStatus == "pending" -> "생성 중"
-            gradingJobStatus == "processing" || gradingJobStatus == "pending" -> "채점 중"
+            generationJobStatus == "processing" || generationJobStatus == "pending" -> "Generating..."
+            gradingJobStatus == "processing" || gradingJobStatus == "pending" -> "Grading..."
             else -> null
         }
-    val statusLabel: String
-        get() = activeJobLabel ?: when (status) {
-            "draft" -> "초안"
-            "ready" -> "준비 완료"
-            "in_progress" -> "진행 중"
-            "active" -> "응시 가능"
-            else -> status ?: "상태 미정"
-        }
-
+    
     val progress: Double?
         get() = when {
             generationJobStatus == "processing" || generationJobStatus == "pending" -> generationProgress
             gradingJobStatus == "processing" || gradingJobStatus == "pending" -> gradingProgress
             else -> null
         }
-
-    val difficultyLabel: String
-        get() = when (difficulty) {
-            "easy" -> "쉬움"
-            "medium" -> "보통"
-            "hard" -> "어려움"
-            else -> difficulty ?: "알 수 없음"
-        }
-
-    val languageLabel: String
-        get() = language ?: "언어 미지정"
-    val createdAtLabel: String?
-        get() = createdAt
 
     val hasOngoingJob: Boolean
         get() = activeJobLabel != null
@@ -507,6 +490,7 @@ fun SubjectDetailScreen(
 
     val brandPrimary = Color(0xFF5BA27F)
     val brandSecondaryText = Color(0xFF4C6070)
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.loadAll()
@@ -540,10 +524,10 @@ fun SubjectDetailScreen(
                 scope.launch {
                     val uploadResult = viewModel.uploadPdfs(uris)
                     if (uploadResult.isSuccess) {
-                        snackbarHostState.showSnackbar("PDF 업로드 완료")
+                        snackbarHostState.showSnackbar(context.getString(R.string.pdf_upload_success))
                     } else {
                         snackbarHostState.showSnackbar(
-                            uploadResult.exceptionOrNull()?.message ?: "PDF 업로드 실패"
+                            context.getString(R.string.pdf_upload_fail, uploadResult.exceptionOrNull()?.message ?: "")
                         )
                     }
                 }
@@ -557,7 +541,7 @@ fun SubjectDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        uiState.subjectName.ifBlank { "과목 상세" },
+                        uiState.subjectName.ifBlank { stringResource(R.string.subject_detail_title) },
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
@@ -582,7 +566,7 @@ fun SubjectDetailScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            com.example.testme.ui.screens.home.SoftBlobBackground()
+            SoftBlobBackground()
 
             if (uiState.loadingSubject && uiState.subjectName.isBlank()) {
                 Box(
@@ -713,10 +697,10 @@ fun SubjectDetailScreen(
                                                     .padding(4.dp),
                                                 horizontalAlignment = Alignment.CenterHorizontally
                                             ) {
-                                                Text("업로드된 PDF가 없습니다.")
+                                                Text(stringResource(R.string.pdf_empty))
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
-                                                    "오른쪽 상단 버튼으로 PDF를 업로드해 주세요.",
+                                                    stringResource(R.string.pdf_empty_guide),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = brandSecondaryText
                                                 )
@@ -818,7 +802,7 @@ fun SubjectDetailScreen(
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
                     Text(
-                        text = "시험 생성",
+                        text = stringResource(R.string.action_generate_exam),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold
                         )
@@ -833,10 +817,10 @@ fun SubjectDetailScreen(
                         showDeletePdfDialog = false
                         pdfToDelete = null
                     },
-                    title = { Text("PDF 삭제") },
+                    title = { Text(stringResource(R.string.pdf_delete_title)) },
                     text = {
                         Text(
-                            "\"${pdfToDelete?.originalFilename}\" 파일을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+                            stringResource(R.string.pdf_delete_confirm, pdfToDelete?.originalFilename ?: "")
                         )
                     },
                     confirmButton = {
@@ -847,10 +831,10 @@ fun SubjectDetailScreen(
                                     scope.launch {
                                         val result = viewModel.deletePdf(target.fileId)
                                         if (result.isSuccess) {
-                                            snackbarHostState.showSnackbar("삭제 완료")
+                                            snackbarHostState.showSnackbar(context.getString(R.string.pdf_delete_success))
                                         } else {
                                             snackbarHostState.showSnackbar(
-                                                result.exceptionOrNull()?.message ?: "삭제 실패"
+                                                context.getString(R.string.pdf_delete_fail, result.exceptionOrNull()?.message ?: "")
                                             )
                                         }
                                         showDeletePdfDialog = false
@@ -859,7 +843,7 @@ fun SubjectDetailScreen(
                                 }
                             }
                         ) {
-                            Text("삭제")
+                            Text(stringResource(R.string.action_delete))
                         }
                     },
                     dismissButton = {
@@ -869,7 +853,7 @@ fun SubjectDetailScreen(
                                 pdfToDelete = null
                             }
                         ) {
-                            Text("취소")
+                            Text(stringResource(R.string.action_cancel))
                         }
                     }
                 )
@@ -879,10 +863,10 @@ fun SubjectDetailScreen(
             if (examToDelete != null) {
                 AlertDialog(
                     onDismissRequest = { examToDelete = null },
-                    title = { Text("시험 삭제") },
+                    title = { Text(stringResource(R.string.exam_delete_title)) },
                     text = {
                         Text(
-                            "\"${examToDelete?.title ?: examToDelete?.shortLabel}\" 시험을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+                            stringResource(R.string.exam_delete_confirm, examToDelete?.title ?: examToDelete?.shortLabel ?: "")
                         )
                     },
                     confirmButton = {
@@ -893,11 +877,10 @@ fun SubjectDetailScreen(
                                     scope.launch {
                                         val result = viewModel.deleteExam(target.examId)
                                         if (result.isSuccess) {
-                                            snackbarHostState.showSnackbar("시험이 삭제되었습니다.")
+                                            snackbarHostState.showSnackbar(context.getString(R.string.exam_delete_success))
                                         } else {
                                             snackbarHostState.showSnackbar(
-                                                result.exceptionOrNull()?.message
-                                                    ?: "시험 삭제에 실패했습니다."
+                                                context.getString(R.string.exam_delete_fail)
                                             )
                                         }
                                         examToDelete = null
@@ -907,12 +890,12 @@ fun SubjectDetailScreen(
                                 }
                             }
                         ) {
-                            Text("삭제")
+                            Text(stringResource(R.string.action_delete))
                         }
                     },
                     dismissButton = {
                         OutlinedButton(onClick = { examToDelete = null }) {
-                            Text("취소")
+                            Text(stringResource(R.string.action_cancel))
                         }
                     }
                 )
@@ -982,7 +965,7 @@ private fun SubjectHeaderSection(
                             .background(color)
                     )
                     Text(
-                        text = "이 색상은 과목 카드와 관련 UI에 사용됩니다.",
+                        text = stringResource(R.string.subject_color_desc),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -1016,7 +999,7 @@ private fun SubjectTabRow(
                     brandPrimary else inactiveText
             )
         ) {
-            Text("시험")
+            Text(stringResource(R.string.tab_exams))
         }
         OutlinedButton(
             onClick = { onTabSelected(SubjectDetailTab.PDF) },
@@ -1028,7 +1011,7 @@ private fun SubjectTabRow(
                     brandPrimary else inactiveText
             )
         ) {
-            Text("PDF")
+            Text(stringResource(R.string.tab_pdf))
         }
     }
 }
@@ -1052,11 +1035,11 @@ private fun PdfSectionHeader(
         ) {
             Column {
                 Text(
-                    text = "PDF 파일",
+                    text = stringResource(R.string.pdf_section_title),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
                 Text(
-                    text = "업로드된 교재 PDF를 기반으로 시험을 생성합니다.",
+                    text = stringResource(R.string.pdf_section_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = brandSecondaryText
                 )
@@ -1074,7 +1057,7 @@ private fun PdfSectionHeader(
                     contentDescription = "Upload"
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(text = if (uploading) "업로드 중..." else "PDF 업로드")
+                Text(text = if (uploading) stringResource(R.string.action_uploading) else stringResource(R.string.action_upload_pdf))
             }
         }
         if (uploading && uploadProgress != null) {
@@ -1088,7 +1071,7 @@ private fun PdfSectionHeader(
                 LinearProgressIndicator(progress = progress)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "$current / $total 파일 업로드 중",
+                    text = stringResource(R.string.pdf_upload_progress_fmt, current, total),
                     style = MaterialTheme.typography.bodySmall,
                     color = brandSecondaryText
                 )
@@ -1364,21 +1347,33 @@ private fun ExamListSection(
                     uiState.exams.forEach { exam ->
                         val isDeleting = uiState.deletingExamId == exam.examId
 
-                        ExamRow(
-                            exam = exam,
-                            accentColor = accentColor,
-                            isDeleting = isDeleting,
-                            onPrimary = {
-                                when {
-                                    exam.canViewResult -> onViewResult(exam)
-                                    exam.canTakeExam -> onTakeExam(exam)
-                                    else -> Unit
+                            ExamRow(
+                                exam = exam,
+                                accentColor = accentColor,
+                                isDeleting = isDeleting,
+                                onPrimary = {
+                                    when {
+                                        exam.canViewResult -> onViewResult(exam)
+                                        exam.canTakeExam -> onTakeExam(exam)
+                                        else -> Unit
+                                    }
+                                },
+                                onTakeExam = { onTakeExam(exam) },
+                                onViewResult = { onViewResult(exam) },
+                                onDelete = { onDeleteExam(exam) },
+                                difficultyLabel = when (exam.difficulty) {
+                                    "easy" -> stringResource(R.string.difficulty_easy)
+                                    "medium" -> stringResource(R.string.difficulty_medium)
+                                    "hard" -> stringResource(R.string.difficulty_hard)
+                                    else -> exam.difficulty ?: stringResource(R.string.difficulty_unknown)
+                                },
+                                languageLabel = exam.language ?: stringResource(R.string.language_unspecified),
+                                activeJobLabel = when {
+                                    exam.generationJobStatus == "processing" || exam.generationJobStatus == "pending" -> stringResource(R.string.status_processing)
+                                    exam.gradingJobStatus == "processing" || exam.gradingJobStatus == "pending" -> stringResource(R.string.status_grading)
+                                    else -> null
                                 }
-                            },
-                            onTakeExam = { onTakeExam(exam) },
-                            onViewResult = { onViewResult(exam) },
-                            onDelete = { onDeleteExam(exam) }
-                        )
+                            )
                     }
                 }
             }
@@ -1394,7 +1389,10 @@ private fun ExamRow(
     onPrimary: () -> Unit,
     onTakeExam: () -> Unit,
     onViewResult: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    difficultyLabel: String,
+    languageLabel: String,
+    activeJobLabel: String?
 ) {
     val brandSecondaryText = Color(0xFF4C6070)
 
@@ -1402,10 +1400,10 @@ private fun ExamRow(
         exam.gradingJobStatus == "processing" || exam.gradingJobStatus == "pending"
 
     val (primaryLabel, primaryEnabled) = when {
-        exam.canViewResult -> "시험 결과 보기" to true
-        isGradingInProgress -> "채점 중..." to false
-        exam.canTakeExam -> "시험 응시" to true
-        else -> "채점 중..." to false
+        exam.canViewResult -> stringResource(R.string.action_view_result) to true
+        isGradingInProgress -> stringResource(R.string.status_grading) to false
+        exam.canTakeExam -> stringResource(R.string.action_take_exam) to true
+        else -> stringResource(R.string.status_grading) to false
     }
 
     Card(
@@ -1434,23 +1432,23 @@ private fun ExamRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "문항 ${exam.numQuestions}개",
+                    text = stringResource(R.string.exam_questions_fmt, exam.numQuestions),
                     style = MaterialTheme.typography.labelSmall,
                     color = brandSecondaryText
                 )
                 Text(
-                    text = "난이도 ${exam.difficultyLabel}",
+                    text = stringResource(R.string.exam_difficulty_fmt, difficultyLabel),
                     style = MaterialTheme.typography.labelSmall,
                     color = brandSecondaryText
                 )
                 Text(
-                    text = exam.languageLabel,
+                    text = languageLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = brandSecondaryText
                 )
             }
 
-            exam.createdAtLabel?.let { created ->
+            exam.createdAt?.let { created ->
                 Text(
                     text = created,
                     style = MaterialTheme.typography.bodySmall,
@@ -1458,7 +1456,7 @@ private fun ExamRow(
                 )
             }
 
-            if (exam.hasOngoingJob && exam.progress != null) {
+            if (exam.hasOngoingJob && exam.progress != null && activeJobLabel != null) {
                 Spacer(modifier = Modifier.height(4.dp))
 
                 val pDouble = exam.progress!!.coerceIn(0.0, 100.0)
@@ -1472,7 +1470,7 @@ private fun ExamRow(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${exam.activeJobLabel} · ${pDouble.toInt()}% 진행 중",
+                    text = stringResource(R.string.job_progress_fmt, pDouble.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = brandSecondaryText
                 )
@@ -1513,7 +1511,7 @@ private fun ExamRow(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "시험 삭제"
+                        contentDescription = stringResource(R.string.action_delete)
                     )
                 }
             }

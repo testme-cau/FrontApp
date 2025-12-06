@@ -48,7 +48,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.group.GroupCreateRequest
-import com.example.testme.ui.screens.home.SoftBlobBackground
+import com.example.testme.ui.components.SoftBlobBackground
+import com.example.testme.ui.components.TestMeTopAppBar
 import kotlinx.coroutines.launch
 
 data class NewGroupUiState(
@@ -123,17 +124,13 @@ fun NewGroupScreen(
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("새 그룹 만들기") },
+            TestMeTopAppBar(
+                title = "새 그룹 만들기",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = Color(0xFF1E4032)
-                ),
                 scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
                     rememberTopAppBarState()
                 )

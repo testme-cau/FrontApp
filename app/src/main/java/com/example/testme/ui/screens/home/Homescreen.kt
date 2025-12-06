@@ -23,7 +23,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import com.example.testme.R
+import com.example.testme.ui.components.SoftBlobBackground
 import com.example.testme.ui.navigation.Screen
 import kotlin.math.cos
 import kotlin.math.sin
@@ -43,21 +46,26 @@ fun HomeScreen(navController: NavController) {
             SoftBlobBackground()
             FrontFacingRotatingPanelsBackground()
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
                     .padding(top = 10.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Main centered content (Title + Buttons)
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(0.8f),
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
+                        // Title Area
                         Text(
-                            text = "Test.me",
+                            text = "test.me",
                             style = MaterialTheme.typography.headlineLarge.copy(
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.primary,
@@ -66,55 +74,50 @@ fun HomeScreen(navController: NavController) {
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "AI 기반 맞춤형 시험 생성 플랫폼",
+                            text = stringResource(R.string.home_subtitle),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 color = Color(0xFF004D2E).copy(alpha = 0.9f),
                                 textAlign = TextAlign.Center
                             ),
                             textAlign = TextAlign.Center
                         )
+
+                        // Spacer to separate Title and Buttons (closer now)
+                        Spacer(modifier = Modifier.height(48.dp))
+
+                        // Buttons Area
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(24.dp),
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        ) {
+                            GradientButton(
+                                text = stringResource(R.string.home_btn_exam),
+                                onClick = { navController.navigate(Screen.Dashboard.route) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp)
+                            )
+
+                            GradientButton(
+                                text = stringResource(R.string.home_btn_profile),
+                                onClick = { navController.navigate(Screen.Profile.route) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp)
+                            )
+                        }
                     }
                 }
+
+                // Footer
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(2f)
-                        .padding(horizontal = 32.dp, vertical = 24.dp),
-                    contentAlignment = Alignment.TopCenter
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(24.dp)
-                    ) {
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        GradientButton(
-                            text = "🧾 시험",
-                            onClick = { navController.navigate(Screen.Dashboard.route) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp)
-                        )
-
-                        GradientButton(
-                            text = "👤 내 프로필",
-                            onClick = { navController.navigate(Screen.Profile.route) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp)
-                        )
-
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 24.dp, top = 40.dp),
+                        .padding(bottom = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Powered by GPT-5 & Gemini",
+                        text = "Powered by GPT-5 & Gemini-2.5-pro 💚",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.outline,
                             textAlign = TextAlign.Center
@@ -228,71 +231,6 @@ fun FrontFacingRotatingPanelsBackground() {
                 strokeWidth = 8f
             )
         }
-    }
-}
-
-@Composable
-fun SoftBlobBackground() {
-    Canvas(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF6FFFA))
-    ) {
-        // Blob 1 (Green)
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFFB3F6A5).copy(alpha = 0.55f),
-                    Color.Transparent
-                ),
-                center = Offset(size.width * 0.3f, size.height * 0.35f),
-                radius = size.minDimension * 0.6f
-            ),
-            center = Offset(size.width * 0.3f, size.height * 0.35f),
-            radius = size.minDimension * 0.6f
-        )
-
-        // Blob 2 (Mint Blue)
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFFA5F6E8).copy(alpha = 0.45f),
-                    Color.Transparent
-                ),
-                center = Offset(size.width * 0.8f, size.height * 0.25f),
-                radius = size.minDimension * 0.5f
-            ),
-            center = Offset(size.width * 0.8f, size.height * 0.25f),
-            radius = size.minDimension * 0.5f
-        )
-
-        // Blob 3 (Light Teal)
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFFAEEBFF).copy(alpha = 0.45f),
-                    Color.Transparent
-                ),
-                center = Offset(size.width * 0.15f, size.height * 0.75f),
-                radius = size.minDimension * 0.55f
-            ),
-            center = Offset(size.width * 0.15f, size.height * 0.75f),
-            radius = size.minDimension * 0.55f
-        )
-
-        // Center light glow
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.4f),
-                    Color.Transparent
-                ),
-                center = Offset(size.width * 0.5f, size.height * 0.5f),
-                radius = size.minDimension * 0.7f
-            ),
-            center = Offset(size.width * 0.5f, size.height * 0.5f),
-            radius = size.minDimension * 0.7f
-        )
     }
 }
 

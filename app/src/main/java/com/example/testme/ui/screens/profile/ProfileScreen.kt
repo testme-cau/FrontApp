@@ -53,11 +53,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.testme.data.api.ApiService
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
+import com.example.testme.R
+import androidx.compose.ui.res.stringResource
 import com.example.testme.data.model.LanguageListResponse
-import com.example.testme.ui.screens.home.SoftBlobBackground
+import com.example.testme.data.api.ApiService
+import com.example.testme.ui.components.SoftBlobBackground
+import com.example.testme.ui.components.TestMeTopAppBar
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.auth.userProfileChangeRequest
@@ -86,31 +92,19 @@ class ProfileViewModel(
 
     init {
         val user = Firebase.auth.currentUser
+        val currentLocales = AppCompatDelegate.getApplicationLocales()
+        val currentLang = if (!currentLocales.isEmpty) currentLocales[0]?.language ?: "ko" else "ko"
+
         _uiState.value = _uiState.value.copy(
             displayName = user?.displayName ?: "",
             email = user?.email ?: "",
-            language = "ko"
+            language = currentLang,
+            availableLanguages = listOf("ko", "en")
         )
-        loadLanguages()
     }
 
     private fun loadLanguages() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(loadingLanguages = true)
-            try {
-                val response: LanguageListResponse = apiService.getSupportedLanguages()
-                val list: List<String> = response.languages.map { it.code }
-                val current = _uiState.value.language.ifBlank { "ko" }
-                val safeLang = if (list.contains(current)) current else list.firstOrNull() ?: "ko"
-                _uiState.value = _uiState.value.copy(
-                    availableLanguages = list,
-                    language = safeLang,
-                    loadingLanguages = false
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(loadingLanguages = false)
-            }
-        }
+       // No-op: hardcoded in init
     }
 
     fun toggleEdit() {
@@ -127,6 +121,8 @@ class ProfileViewModel(
 
     fun updateLanguage(lang: String) {
         _uiState.value = _uiState.value.copy(language = lang)
+        val localeList = LocaleListCompat.forLanguageTags(lang)
+        AppCompatDelegate.setApplicationLocales(localeList)
     }
 
     fun cancelEdit() {
@@ -176,7 +172,7 @@ class ProfileViewModel(
                     }
                 }
             } else {
-                val msg = task.exception?.message ?: "프로필 저장에 실패했습니다."
+                val msg = task.exception?.message ?: "Failed to save profile"
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
                     errorMessage = msg
@@ -220,6 +216,8 @@ fun ProfileScreen(
     val brandPrimary = Color(0xFF5BA27F)
     val brandPrimaryDeep = Color(0xFF1E4032)
 
+    val context = LocalContext.current
+
     LaunchedEffect(uiState.errorMessage) {
         if (uiState.errorMessage != null && uiState.errorMessage != lastError) {
             snackbarHostState.showSnackbar(uiState.errorMessage ?: "")
@@ -230,16 +228,8 @@ fun ProfileScreen(
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "프로필",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            color = brandPrimaryDeep
-                        )
-                    )
-                },
+            TestMeTopAppBar(
+                title = stringResource(R.string.profile_title),
                 actions = {
                     if (uiState.isEditing) {
                         IconButton(
@@ -248,28 +238,24 @@ fun ProfileScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Save,
-                                contentDescription = "저장"
+                                contentDescription = stringResource(R.string.action_save)
                             )
                         }
                         TextButton(
                             onClick = { viewModel.cancelEdit() },
                             enabled = !uiState.isSaving
                         ) {
-                            Text("취소")
+                            Text(stringResource(R.string.action_cancel))
                         }
                     } else {
                         IconButton(onClick = { viewModel.toggleEdit() }) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
-                                contentDescription = "편집"
+                                contentDescription = stringResource(R.string.action_edit)
                             )
                         }
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
-                ),
                 scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
                     rememberTopAppBarState()
                 )
@@ -303,69 +289,62 @@ fun ProfileScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.Start
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .height(80.dp)
-                                .fillMaxWidth(fraction = 0f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "프로필 아이콘",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.height(48.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
                         if (uiState.isEditing) {
                             OutlinedTextField(
                                 value = uiState.displayName,
                                 onValueChange = { viewModel.updateDisplayName(it) },
-                                label = { Text("이름") },
+                                label = { Text(stringResource(R.string.label_name)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 4.dp),
                                 singleLine = true
                             )
                         } else {
-                            Text(
-                                text = uiState.displayName.ifBlank { "이름 없음" },
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = stringResource(R.string.label_name),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = uiState.displayName.ifBlank { stringResource(R.string.no_name) },
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
                         Column(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             ProfileRow(
-                                label = "이메일",
-                                value = uiState.email.ifBlank { "알 수 없음" }
+                                label = stringResource(R.string.label_email),
+                                value = uiState.email.ifBlank { stringResource(R.string.unknown) }
                             )
 
                             if (uiState.isEditing) {
                                 LanguageDropdown(
-                                    label = "언어",
+                                    label = stringResource(R.string.label_language),
                                     selected = uiState.language.ifBlank { "ko" },
                                     options = uiState.availableLanguages.ifEmpty { listOf("ko", "en") },
                                     loading = uiState.loadingLanguages,
                                     onSelect = { viewModel.updateLanguage(it) }
                                 )
                             } else {
+                                val displayLang = when(uiState.language.ifBlank { "ko" }) {
+                                    "ko" -> "🇰🇷 " + stringResource(R.string.language_ko)
+                                    "en" -> "🇺🇸 " + stringResource(R.string.language_en)
+                                    else -> uiState.language
+                                }
                                 ProfileRow(
-                                    label = "언어",
-                                    value = uiState.language.ifBlank { "ko" }.uppercase()
+                                    label = stringResource(R.string.label_language),
+                                    value = displayLang
                                 )
                             }
                         }
@@ -394,10 +373,10 @@ fun ProfileScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Logout,
-                            contentDescription = "로그아웃"
+                            contentDescription = stringResource(R.string.action_logout)
                         )
                         Spacer(modifier = Modifier.weight(1f, false))
-                        Text("로그아웃")
+                        Text(stringResource(R.string.action_logout))
                     }
                 }
             }
@@ -444,8 +423,13 @@ private fun LanguageDropdown(
         Spacer(modifier = Modifier.height(4.dp))
 
         Box {
+            val displaySelected = when(selected) {
+                "ko" -> "🇰🇷 " + stringResource(R.string.language_ko)
+                "en" -> "🇺🇸 " + stringResource(R.string.language_en)
+                else -> selected
+            }
             OutlinedTextField(
-                value = if (loading) "언어 로딩 중..." else selected.uppercase(),
+                value = if (loading) stringResource(R.string.loading_languages) else displaySelected,
                 onValueChange = {},
                 readOnly = true,
                 enabled = !loading,
@@ -465,8 +449,13 @@ private fun LanguageDropdown(
                 onDismissRequest = { expanded = false }
             ) {
                 options.forEach { code ->
+                    val text = when(code) {
+                        "ko" -> "🇰🇷 " + stringResource(R.string.language_ko)
+                        "en" -> "🇺🇸 " + stringResource(R.string.language_en)
+                        else -> code
+                    }
                     DropdownMenuItem(
-                        text = { Text(code.uppercase()) },
+                        text = { Text(text) },
                         onClick = {
                             onSelect(code)
                             expanded = false

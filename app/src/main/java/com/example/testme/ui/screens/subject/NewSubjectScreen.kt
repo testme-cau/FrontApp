@@ -60,7 +60,8 @@ import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.SubjectCreateRequest
 import com.example.testme.data.model.group.GroupData
 import com.example.testme.data.model.group.GroupListResponse
-import com.example.testme.ui.screens.home.SoftBlobBackground
+import com.example.testme.ui.components.SoftBlobBackground
+import com.example.testme.ui.components.TestMeTopAppBar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -89,15 +90,8 @@ fun NewSubjectScreen(
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "새 과목 추가",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            color = brandPrimaryDeep
-                        )
-                    )
-                },
+            TestMeTopAppBar(
+                title = "새 과목 추가",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -106,10 +100,6 @@ fun NewSubjectScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
-                ),
                 scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
                     rememberTopAppBarState()
                 )

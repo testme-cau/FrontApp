@@ -50,7 +50,8 @@ import androidx.navigation.NavController
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.ExamListResponse
 import com.example.testme.ui.navigation.Screen
-import com.example.testme.ui.screens.home.SoftBlobBackground
+import com.example.testme.ui.components.SoftBlobBackground
+import com.example.testme.ui.components.TestMeTopAppBar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -90,21 +91,13 @@ fun ExamListScreen(
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = subjectName?.let { "시험 목록 · $it" } ?: "시험 목록",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    )
-                },
+            TestMeTopAppBar(
+                title = subjectName?.let { "시험 목록 · $it" } ?: "시험 목록",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "뒤로가기",
-                            tint = Color(0xFF1E4032)
+                            contentDescription = "뒤로가기"
                         )
                     }
                 },
@@ -115,15 +108,10 @@ fun ExamListScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "새로고침",
-                            tint = Color(0xFF1E4032)
+                            contentDescription = "새로고침"
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = Color(0xFF1E4032)
-                ),
                 scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
                     rememberTopAppBarState()
                 )

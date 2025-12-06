@@ -24,7 +24,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.testme.data.api.ApiService
 import com.example.testme.data.model.PdfDownloadResponse
-import com.example.testme.ui.screens.home.SoftBlobBackground
+import com.example.testme.ui.components.SoftBlobBackground
+import com.example.testme.ui.components.TestMeTopAppBar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -113,16 +114,11 @@ fun PdfPreviewScreen(
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = if (uiState.originalFilename.isNotBlank())
-                            uiState.originalFilename
-                        else
-                            "PDF 미리보기",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                },
+            TestMeTopAppBar(
+                title = if (uiState.originalFilename.isNotBlank())
+                    uiState.originalFilename
+                else
+                    "PDF 미리보기",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -130,11 +126,7 @@ fun PdfPreviewScreen(
                             contentDescription = "뒤로가기"
                         )
                     }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
-                )
+                }
             )
         }
     ) { padding ->

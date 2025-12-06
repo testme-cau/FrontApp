@@ -1,0 +1,212 @@
+package com.example.testme.ui.components
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.example.testme.ui.theme.BrandCyan50
+import com.example.testme.ui.theme.BrandGreen50
+import com.example.testme.ui.theme.UIBorder
+import com.example.testme.ui.theme.UIPrimary
+import com.example.testme.ui.theme.UISecondary
+
+@Composable
+fun TestMeBackground(
+    content: @Composable BoxScope.() -> Unit
+) {
+    // 새로운 스타일 배경 (그라데이션)
+    val backgroundBrush = Brush.linearGradient(
+        colors = listOf(BrandGreen50, BrandCyan50),
+        start = Offset(0f, 0f),
+        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundBrush)
+    ) {
+        content()
+    }
+}
+
+// 롤백: 기존의 SoftBlobBackground 구현 복구
+@Composable
+fun SoftBlobBackground() {
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF6FFFA))
+    ) {
+        // Blob 1 (Green)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFB3F6A5).copy(alpha = 0.55f),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.3f, size.height * 0.35f),
+                radius = size.minDimension * 0.6f
+            ),
+            center = Offset(size.width * 0.3f, size.height * 0.35f),
+            radius = size.minDimension * 0.6f
+        )
+
+        // Blob 2 (Mint Blue)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFA5F6E8).copy(alpha = 0.45f),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.8f, size.height * 0.25f),
+                radius = size.minDimension * 0.5f
+            ),
+            center = Offset(size.width * 0.8f, size.height * 0.25f),
+            radius = size.minDimension * 0.5f
+        )
+
+        // Blob 3 (Light Teal)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFAEEBFF).copy(alpha = 0.45f),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.15f, size.height * 0.75f),
+                radius = size.minDimension * 0.55f
+            ),
+            center = Offset(size.width * 0.15f, size.height * 0.75f),
+            radius = size.minDimension * 0.55f
+        )
+
+        // Center light glow
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.4f),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.5f, size.height * 0.5f),
+                radius = size.minDimension * 0.7f
+            ),
+            center = Offset(size.width * 0.5f, size.height * 0.5f),
+            radius = size.minDimension * 0.7f
+        )
+    }
+}
+
+@Composable
+fun TestMeCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    backgroundColor: Color = Color.White,
+    hasBorder: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val border = if (hasBorder) BorderStroke(1.dp, UIBorder) else null
+    val cardModifier = if (onClick != null) modifier.clickable(onClick = onClick) else modifier
+
+    Card(
+        modifier = cardModifier,
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = backgroundColor
+        ),
+        border = border,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun TestMeButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isSecondary: Boolean = false,
+    enabled: Boolean = true
+) {
+    val containerColor = if (isSecondary) UISecondary else UIPrimary
+    val contentColor = if (isSecondary) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary
+
+    Button(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = if (isSecondary) UISecondary.copy(alpha = 0.5f) else UIPrimary.copy(alpha = 0.5f)
+        ),
+        contentPadding = PaddingValues(vertical = 16.dp),
+        enabled = enabled
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+        )
+    }
+}
+
+@Composable
+fun TestMeTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    placeholder: String? = null,
+    singleLine: Boolean = true
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth(),
+        label = label?.let { { Text(it) } },
+        placeholder = placeholder?.let { { Text(it, color = Color.Gray) } },
+        singleLine = singleLine,
+        shape = RoundedCornerShape(8.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = UIPrimary,
+            unfocusedBorderColor = UIBorder,
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White
+        )
+    )
+}
+
+@Composable
+fun TestMeTitle(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onBackground
+) {
+    Text(
+        text = text,
+        modifier = modifier,
+        style = MaterialTheme.typography.headlineMedium,
+        color = color
+    )
+}

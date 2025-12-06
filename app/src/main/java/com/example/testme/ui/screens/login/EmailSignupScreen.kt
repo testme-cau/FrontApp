@@ -39,8 +39,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
-import com.example.testme.ui.screens.home.SoftBlobBackground
+import com.example.testme.R
+import com.example.testme.ui.components.SoftBlobBackground
+import com.example.testme.ui.components.TestMeTopAppBar
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
@@ -60,6 +64,7 @@ fun EmailSignupScreen(navController: NavController) {
 
     val coroutine = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     val brandPrimary = Color(0xFF5BA27F)
     val brandPrimaryDeep = Color(0xFF1E4032)
@@ -68,28 +73,16 @@ fun EmailSignupScreen(navController: NavController) {
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "회원가입",
-                        style = androidx.compose.material3.MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            color = brandPrimaryDeep
-                        )
-                    )
-                },
+            TestMeTopAppBar(
+                title = stringResource(R.string.signup_title),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = brandPrimaryDeep
+                            contentDescription = "Back"
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
-                ),
                 scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
                     rememberTopAppBarState()
                 )
@@ -137,13 +130,13 @@ fun EmailSignupScreen(navController: NavController) {
                     ) {
 
                         Text(
-                            "AI 기반 시험 플랫폼",
+                            stringResource(R.string.app_subtitle_short),
                             style = androidx.compose.material3.MaterialTheme.typography.labelMedium.copy(
                                 color = brandSecondaryText
                             )
                         )
                         Text(
-                            "Test.me",
+                            "test.me",
                             style = androidx.compose.material3.MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.ExtraBold,
                                 color = brandPrimaryDeep
@@ -155,7 +148,7 @@ fun EmailSignupScreen(navController: NavController) {
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            label = { Text("이메일") },
+                            label = { Text(stringResource(R.string.email_label)) },
                             singleLine = true,
                             enabled = !isLoading,
                             modifier = Modifier.fillMaxWidth()
@@ -166,7 +159,7 @@ fun EmailSignupScreen(navController: NavController) {
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
-                            label = { Text("비밀번호") },
+                            label = { Text(stringResource(R.string.password_label)) },
                             singleLine = true,
                             enabled = !isLoading,
                             visualTransformation = PasswordVisualTransformation(),
@@ -178,7 +171,7 @@ fun EmailSignupScreen(navController: NavController) {
                         OutlinedTextField(
                             value = confirm,
                             onValueChange = { confirm = it },
-                            label = { Text("비밀번호 확인") },
+                            label = { Text(stringResource(R.string.password_confirm_label)) },
                             singleLine = true,
                             enabled = !isLoading,
                             visualTransformation = PasswordVisualTransformation(),
@@ -201,21 +194,21 @@ fun EmailSignupScreen(navController: NavController) {
                                 errorMessage = ""
 
                                 if (password != confirm) {
-                                    errorMessage = "비밀번호가 일치하지 않습니다"
+                                    errorMessage = context.getString(R.string.password_mismatch)
                                     coroutine.launch {
                                         snackbarHostState.showSnackbar(errorMessage)
                                     }
                                     return@Button
                                 }
                                 if (password.length !in 7..13) {
-                                    errorMessage = "비밀번호는 7~13자리여야 합니다"
+                                    errorMessage = context.getString(R.string.password_length_error)
                                     coroutine.launch {
                                         snackbarHostState.showSnackbar(errorMessage)
                                     }
                                     return@Button
                                 }
                                 if (!password.any { it.isDigit() } || !password.any { it.isLetter() }) {
-                                    errorMessage = "영문자와 숫자를 모두 포함해야 합니다"
+                                    errorMessage = context.getString(R.string.password_char_error)
                                     coroutine.launch {
                                         snackbarHostState.showSnackbar(errorMessage)
                                     }
@@ -227,12 +220,12 @@ fun EmailSignupScreen(navController: NavController) {
                                     try {
                                         auth.createUserWithEmailAndPassword(email, password).await()
 
-                                        snackbarHostState.showSnackbar("회원가입 완료")
+                                        snackbarHostState.showSnackbar(context.getString(R.string.signup_success))
                                         navController.navigate("home") {
                                             popUpTo("login") { inclusive = true }
                                         }
                                     } catch (e: Exception) {
-                                        errorMessage = "회원가입 실패: ${e.message}"
+                                        errorMessage = context.getString(R.string.signup_fail_prefix, e.message ?: "")
                                         snackbarHostState.showSnackbar(errorMessage)
                                     } finally {
                                         isLoading = false
@@ -249,7 +242,7 @@ fun EmailSignupScreen(navController: NavController) {
                                     color = Color.White
                                 )
                             }
-                            Text(if (isLoading) "가입 중..." else "가입하기")
+                            Text(if (isLoading) stringResource(R.string.signup_btn_loading) else stringResource(R.string.signup_btn))
                         }
 
                         TextButton(
@@ -258,7 +251,7 @@ fun EmailSignupScreen(navController: NavController) {
                             modifier = Modifier.padding(top = 4.dp)
                         ) {
                             Text(
-                                "이미 계정이 있나요? 로그인으로",
+                                stringResource(R.string.login_link),
                                 color = brandSecondaryText
                             )
                         }

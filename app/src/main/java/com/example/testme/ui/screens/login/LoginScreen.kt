@@ -18,19 +18,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,10 +40,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.testme.R
-import com.example.testme.ui.screens.home.SoftBlobBackground
+import com.example.testme.ui.components.SoftBlobBackground
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
@@ -99,14 +96,14 @@ fun LoginScreen(
                 isGoogleLoading = false
                 errorMessage = when (e.statusCode) {
                     GoogleSignInStatusCodes.SIGN_IN_CANCELLED ->
-                        "사용자가 Google 로그인을 취소했어요."
+                        context.getString(R.string.login_google_cancel)
                     else ->
-                        "Google 로그인 실패 (code=${e.statusCode}): ${e.message}"
+                        context.getString(R.string.login_google_fail, "${e.statusCode}: ${e.message}")
                 }
                 snackbarHostState.showSnackbar(errorMessage)
             } catch (e: Exception) {
                 isGoogleLoading = false
-                errorMessage = "Google 로그인 실패: ${e.message}"
+                errorMessage = context.getString(R.string.login_google_fail, e.message ?: "")
                 snackbarHostState.showSnackbar(errorMessage)
             }
         }
@@ -118,26 +115,6 @@ fun LoginScreen(
 
     Scaffold(
         containerColor = Color.Transparent,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "로그인",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            color = brandPrimaryDeep
-                        )
-                    )
-                },
-                navigationIcon = {},
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
-                ),
-                scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
-                    rememberTopAppBarState()
-                )
-            )
-        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
 
@@ -157,14 +134,14 @@ fun LoginScreen(
             ) {
 
                 Text(
-                    text = "Test.me",
+                    text = "test.me",
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.ExtraBold,
                         color = brandPrimaryDeep
                     )
                 )
                 Text(
-                    text = "AI 기반 맞춤형 시험 생성 플랫폼",
+                    text = stringResource(R.string.home_subtitle),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = brandSecondaryText
                     )
@@ -188,7 +165,7 @@ fun LoginScreen(
                     ) {
 
                         Text(
-                            "로그인 방법을 선택해 주세요",
+                            stringResource(R.string.login_method_select),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 color = brandSecondaryText,
                                 fontWeight = FontWeight.SemiBold
@@ -214,7 +191,7 @@ fun LoginScreen(
                                 contentDescription = null
                             )
                             Spacer(Modifier.width(8.dp))
-                            Text("이메일 / 비밀번호 로그인")
+                            Text(stringResource(R.string.login_email_password))
                         }
 
                         Spacer(Modifier.height(16.dp))
@@ -250,7 +227,7 @@ fun LoginScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                             }
-                            Text(if (isGoogleLoading) "Google 로그인 중..." else "Google 계정으로 계속하기")
+                            Text(if (isGoogleLoading) stringResource(R.string.login_google_loading) else stringResource(R.string.login_google_continue))
                         }
 
                         AnimatedVisibility(

@@ -63,7 +63,8 @@ import com.example.testme.data.model.group.GroupData
 import com.example.testme.data.model.group.GroupListResponse
 import com.example.testme.data.model.group.GroupUpdateRequest
 import com.example.testme.ui.navigation.Screen
-import com.example.testme.ui.screens.home.SoftBlobBackground
+import com.example.testme.ui.components.SoftBlobBackground
+import com.example.testme.ui.components.TestMeTopAppBar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -247,15 +248,8 @@ fun DashboardScreen(
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "대시보드",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
-                        )
-                    )
-                },
+            TestMeTopAppBar(
+                title = "대시보드",
                 actions = {
                     IconButton(
                         onClick = { viewModel.loadAll(forceRefresh = true) },
@@ -263,15 +257,10 @@ fun DashboardScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "새로고침",
-                            tint = Color(0xFF1E4032)
+                            contentDescription = "새로고침"
                         )
                     }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = Color(0xFF1E4032)
-                )
+                }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },

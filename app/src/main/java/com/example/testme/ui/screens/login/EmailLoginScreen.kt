@@ -19,12 +19,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
-import com.example.testme.ui.screens.home.SoftBlobBackground
+import com.example.testme.ui.components.SoftBlobBackground
+import com.example.testme.ui.components.TestMeTopAppBar
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import com.example.testme.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,32 +47,21 @@ fun EmailLoginScreen(navController: NavController) {
     val brandPrimary = Color(0xFF5BA27F)
     val brandPrimaryDeep = Color(0xFF1E4032)
     val brandSecondaryText = Color(0xFF4C6070)
+    val context = LocalContext.current
 
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "이메일 로그인",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            color = brandPrimaryDeep
-                        )
-                    )
-                },
+            TestMeTopAppBar(
+                title = stringResource(R.string.email_login_title),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = brandPrimaryDeep
+                            contentDescription = "Back"
                         )
                     }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
-                )
+                }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -113,7 +106,7 @@ fun EmailLoginScreen(navController: NavController) {
                     ) {
 
                         Text(
-                            "AI 기반 시험 플랫폼",
+                            stringResource(R.string.app_subtitle_short),
                             style = MaterialTheme.typography.labelMedium.copy(
                                 color = brandSecondaryText
                             )
@@ -131,7 +124,7 @@ fun EmailLoginScreen(navController: NavController) {
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            label = { Text("이메일") },
+                            label = { Text(stringResource(R.string.email_label)) },
                             singleLine = true,
                             enabled = !isLoading,
                             modifier = Modifier.fillMaxWidth(),
@@ -145,7 +138,7 @@ fun EmailLoginScreen(navController: NavController) {
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
-                            label = { Text("비밀번호") },
+                            label = { Text(stringResource(R.string.password_label)) },
                             singleLine = true,
                             enabled = !isLoading,
                             visualTransformation = PasswordVisualTransformation(),
@@ -175,8 +168,10 @@ fun EmailLoginScreen(navController: NavController) {
                                             popUpTo("login") { inclusive = true }
                                         }
                                     } catch (e: Exception) {
-                                        errorMessage = "로그인 실패: ${e.message}"
-                                        snackbarHostState.showSnackbar(errorMessage)
+                                        errorMessage = context.getString(R.string.login_fail_prefix, e.message ?: "")
+                                        coroutine.launch {
+                                            snackbarHostState.showSnackbar(errorMessage)
+                                        }
                                     } finally {
                                         isLoading = false
                                     }
@@ -192,7 +187,7 @@ fun EmailLoginScreen(navController: NavController) {
                                     color = Color.White
                                 )
                             }
-                            Text(if (isLoading) "로그인 중..." else "로그인")
+                            Text(if (isLoading) stringResource(R.string.login_btn_loading) else stringResource(R.string.login_btn))
                         }
 
                         TextButton(
@@ -201,7 +196,7 @@ fun EmailLoginScreen(navController: NavController) {
                             modifier = Modifier.padding(top = 8.dp)
                         ) {
                             Text(
-                                "아직 계정이 없나요? 회원가입",
+                                stringResource(R.string.signup_link),
                                 color = brandSecondaryText
                             )
                         }
