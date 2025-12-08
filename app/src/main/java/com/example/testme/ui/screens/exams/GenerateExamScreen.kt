@@ -305,7 +305,7 @@ fun GenerateExamScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             CircularProgressIndicator(
-                                modifier = Modifier.height(24.dp),
+                                modifier = Modifier.size(24.dp),
                                 strokeWidth = 3.dp,
                                 color = subjectColor
                             )
@@ -583,33 +583,35 @@ fun GenerateExamScreen(
 
                     Button(
                         onClick = {
-                            scope.launch {
-                                val result = viewModel.submit(context)
-                                if (result.isSuccess) {
-                                    navController.popBackStack()
-                                    launch {
-                                        snackbarHostState.showSnackbar(context.getString(R.string.generate_start_success))
+                            if (!uiState.submitting) {
+                                scope.launch {
+                                    val result = viewModel.submit(context)
+                                    if (result.isSuccess) {
+                                        navController.popBackStack()
+                                        launch {
+                                            snackbarHostState.showSnackbar(context.getString(R.string.generate_start_success))
+                                        }
+                                    } else {
+                                        snackbarHostState.showSnackbar(
+                                            result.exceptionOrNull()?.message
+                                                ?: context.getString(R.string.generate_fail)
+                                        )
                                     }
-                                } else {
-                                    snackbarHostState.showSnackbar(
-                                        result.exceptionOrNull()?.message
-                                            ?: context.getString(R.string.generate_fail)
-                                    )
                                 }
                             }
                         },
-                        enabled = uiState.selectedPdfIds.isNotEmpty() && !uiState.submitting,
+                        enabled = uiState.selectedPdfIds.isNotEmpty() || uiState.submitting,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         if (uiState.submitting) {
                             CircularProgressIndicator(
-                                modifier = Modifier
-                                    .height(18.dp)
-                                    .padding(end = 8.dp),
-                                strokeWidth = 2.dp
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 3.dp,
+                                color = Color.White
                             )
+                        } else {
+                            Text(stringResource(R.string.action_generate_exam))
                         }
-                        Text(if (uiState.submitting) stringResource(R.string.action_generating) else stringResource(R.string.action_generate_exam))
                     }
                 }
             }
@@ -638,7 +640,7 @@ private fun LanguageSelector(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CircularProgressIndicator(
-                        modifier = Modifier.height(18.dp),
+                        modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp
                     )
                     Text(

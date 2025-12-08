@@ -201,15 +201,17 @@ fun LoginScreen(
 
                         OutlinedButton(
                             onClick = {
-                                Log.d("AuthDebug", "PACKAGE=${context.packageName}")
-                                errorMessage = ""
-                                launcher.launch(googleSignInClient.signInIntent)
+                                if (!isGoogleLoading) {
+                                    Log.d("AuthDebug", "PACKAGE=${context.packageName}")
+                                    errorMessage = ""
+                                    launcher.launch(googleSignInClient.signInIntent)
+                                }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp),
                             shape = RoundedCornerShape(18.dp),
-                            enabled = !isGoogleLoading,
+                            enabled = true,
                             colors = ButtonDefaults.outlinedButtonColors(
                                 contentColor = brandSecondaryText
                             ),
@@ -217,10 +219,9 @@ fun LoginScreen(
                         ) {
                             if (isGoogleLoading) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier
-                                        .height(18.dp)
-                                        .padding(end = 8.dp),
-                                    strokeWidth = 2.dp
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 3.dp,
+                                    color = brandSecondaryText
                                 )
                             } else {
                                 Icon(
@@ -229,8 +230,8 @@ fun LoginScreen(
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(Modifier.width(8.dp))
+                                Text(stringResource(R.string.login_google_continue))
                             }
-                            Text(if (isGoogleLoading) stringResource(R.string.login_google_loading) else stringResource(R.string.login_google_continue))
                         }
 
                         AnimatedVisibility(

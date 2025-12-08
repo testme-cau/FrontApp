@@ -192,60 +192,61 @@ fun EmailSignupScreen(navController: NavController) {
                                 containerColor = brandPrimary,
                                 contentColor = Color.White
                             ),
-                            enabled = !isLoading && email.isNotBlank() && password.isNotBlank() && confirm.isNotBlank(),
+                            enabled = isLoading || (email.isNotBlank() && password.isNotBlank() && confirm.isNotBlank()),
                             onClick = {
-                                errorMessage = ""
+                                if (!isLoading) {
+                                    errorMessage = ""
 
-                                if (password != confirm) {
-                                    errorMessage = context.getString(R.string.password_mismatch)
-                                    coroutine.launch {
-                                        snackbarHostState.showSnackbar(errorMessage)
-                                    }
-                                    return@Button
-                                }
-                                if (password.length !in 7..13) {
-                                    errorMessage = context.getString(R.string.password_length_error)
-                                    coroutine.launch {
-                                        snackbarHostState.showSnackbar(errorMessage)
-                                    }
-                                    return@Button
-                                }
-                                if (!password.any { it.isDigit() } || !password.any { it.isLetter() }) {
-                                    errorMessage = context.getString(R.string.password_char_error)
-                                    coroutine.launch {
-                                        snackbarHostState.showSnackbar(errorMessage)
-                                    }
-                                    return@Button
-                                }
-
-                                coroutine.launch {
-                                    isLoading = true
-                                    try {
-                                        auth.createUserWithEmailAndPassword(email, password).await()
-
-                                        snackbarHostState.showSnackbar(context.getString(R.string.signup_success))
-                                        navController.navigate("home") {
-                                            popUpTo("login") { inclusive = true }
+                                    if (password != confirm) {
+                                        errorMessage = context.getString(R.string.password_mismatch)
+                                        coroutine.launch {
+                                            snackbarHostState.showSnackbar(errorMessage)
                                         }
-                                    } catch (e: Exception) {
-                                        errorMessage = context.getString(R.string.signup_fail_prefix, e.message ?: "")
-                                        snackbarHostState.showSnackbar(errorMessage)
-                                    } finally {
-                                        isLoading = false
+                                        return@Button
+                                    }
+                                    if (password.length !in 7..13) {
+                                        errorMessage = context.getString(R.string.password_length_error)
+                                        coroutine.launch {
+                                            snackbarHostState.showSnackbar(errorMessage)
+                                        }
+                                        return@Button
+                                    }
+                                    if (!password.any { it.isDigit() } || !password.any { it.isLetter() }) {
+                                        errorMessage = context.getString(R.string.password_char_error)
+                                        coroutine.launch {
+                                            snackbarHostState.showSnackbar(errorMessage)
+                                        }
+                                        return@Button
+                                    }
+
+                                    coroutine.launch {
+                                        isLoading = true
+                                        try {
+                                            auth.createUserWithEmailAndPassword(email, password).await()
+
+                                            snackbarHostState.showSnackbar(context.getString(R.string.signup_success))
+                                            navController.navigate("home") {
+                                                popUpTo("login") { inclusive = true }
+                                            }
+                                        } catch (e: Exception) {
+                                            errorMessage = context.getString(R.string.signup_fail_prefix, e.message ?: "")
+                                            snackbarHostState.showSnackbar(errorMessage)
+                                        } finally {
+                                            isLoading = false
+                                        }
                                     }
                                 }
                             }
                         ) {
                             if (isLoading) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier
-                                        .height(18.dp)
-                                        .padding(end = 8.dp),
-                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 3.dp,
                                     color = Color.White
                                 )
+                            } else {
+                                Text(stringResource(R.string.signup_btn))
                             }
-                            Text(if (isLoading) stringResource(R.string.signup_btn_loading) else stringResource(R.string.signup_btn))
                         }
 
                         TextButton(

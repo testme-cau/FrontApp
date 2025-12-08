@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -212,32 +213,35 @@ fun NewGroupScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    scope.launch {
-                                        val result = viewModel.submit(context)
-                                        if (result.isSuccess) {
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar(context.getString(R.string.msg_group_create_success))
+                                    if (!state.submitting) {
+                                        scope.launch {
+                                            val result = viewModel.submit(context)
+                                            if (result.isSuccess) {
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar(context.getString(R.string.msg_group_create_success))
+                                                }
+                                                navController.popBackStack()
+                                            } else {
+                                                snackbarHostState.showSnackbar(
+                                                    result.exceptionOrNull()?.message
+                                                        ?: context.getString(R.string.msg_group_create_fail)
+                                                )
                                             }
-                                            navController.popBackStack()
-                                        } else {
-                                            snackbarHostState.showSnackbar(
-                                                result.exceptionOrNull()?.message ?: context.getString(R.string.msg_group_create_fail)
-                                            )
                                         }
                                     }
                                 },
-                                enabled = !state.submitting && state.name.isNotBlank(),
+                                enabled = state.submitting || state.name.isNotBlank(),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 if (state.submitting) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier
-                                            .height(18.dp)
-                                            .padding(end = 8.dp),
-                                        strokeWidth = 2.dp
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 3.dp,
+                                        color = Color.White
                                     )
+                                } else {
+                                    Text(text = stringResource(R.string.action_create_group))
                                 }
-                                Text(text = if (state.submitting) stringResource(R.string.action_generating) else stringResource(R.string.action_create_group))
                             }
 
                             OutlinedButton(

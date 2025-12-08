@@ -39,6 +39,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.testme.R
 import com.example.testme.ui.theme.BrandCyan50
 import com.example.testme.ui.theme.BrandGreen50
 import com.example.testme.ui.theme.UIBorder
@@ -250,7 +252,7 @@ fun <T> TestMeDropdown(
     placeholder: String = "Select",
     modifier: Modifier = Modifier,
     showClearOption: Boolean = false,
-    clearOptionLabel: String = "전체"
+    clearOptionLabel: String = stringResource(R.string.label_all_options)
 ) {
     var expanded by remember { mutableStateOf(false) }
 

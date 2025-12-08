@@ -79,6 +79,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 import android.content.Context
+import android.content.res.Resources
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.platform.LocalContext
 
@@ -92,7 +93,13 @@ fun TakeExamScreen(
     examId: String,
     subjectColor: Color = MaterialTheme.colorScheme.primary,
     viewModel: TakeExamViewModel = viewModel(
-        factory = TakeExamViewModel.TakeExamViewModelFactory(apiService, token, subjectId, examId)
+        factory = TakeExamViewModel.TakeExamViewModelFactory(
+            apiService, 
+            token, 
+            subjectId, 
+            examId,
+            LocalContext.current.resources
+        )
     )
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -259,8 +266,8 @@ fun TakeExamScreen(
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
-                                onClick = { showSubmitConfirm = true },
-                                enabled = !uiState.submitting,
+                                onClick = { if (!uiState.submitting) showSubmitConfirm = true },
+                                enabled = true,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(56.dp)
@@ -274,17 +281,16 @@ fun TakeExamScreen(
                             ) {
                                 if (uiState.submitting) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .padding(end = 8.dp),
-                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 3.dp,
                                         color = Color.White
                                     )
+                                } else {
+                                    Text(
+                                        text = stringResource(R.string.action_submit),
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
                                 }
-                                Text(
-                                    text = if (uiState.submitting) stringResource(R.string.action_submitting) else stringResource(R.string.action_submit),
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                                )
                             }
                             Spacer(modifier = Modifier.height(16.dp)) // Normal spacer
                         }
@@ -293,8 +299,9 @@ fun TakeExamScreen(
             }
 
             if (uiState.errorMessage != null) {
+                val msg = uiState.errorMessage ?: stringResource(R.string.msg_error_generic)
                 LaunchedEffect(uiState.errorMessage) {
-                    snackbarHostState.showSnackbar(uiState.errorMessage ?: "오류가 발생했습니다.")
+                    snackbarHostState.showSnackbar(msg)
                 }
             }
 
@@ -312,11 +319,11 @@ fun TakeExamScreen(
                                     if (result.isSuccess) {
                                         navController.popBackStack()
                                         launch {
-                                            snackbarHostState.showSnackbar("시험이 제출되었습니다. 채점이 진행됩니다.")
+                                            snackbarHostState.showSnackbar(context.getString(R.string.exam_submitted_success))
                                         }
                                     } else {
                                         snackbarHostState.showSnackbar(
-                                            result.exceptionOrNull()?.message ?: "시험 제출에 실패했습니다."
+                                            result.exceptionOrNull()?.message ?: context.getString(R.string.exam_submit_fail)
                                         )
                                     }
                                 }
@@ -579,7 +586,8 @@ class TakeExamViewModel(
     private val apiService: ApiService,
     private val token: String,
     private val subjectId: String,
-    private val examId: String
+    private val examId: String,
+    private val resources: Resources
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -660,7 +668,7 @@ class TakeExamViewModel(
     suspend fun submitExam(): Result<ExamSubmitResponse> {
         val state = _uiState.value
         if (state.questions.isEmpty()) {
-            return Result.failure(IllegalStateException("제출할 시험 정보가 없습니다."))
+            return Result.failure(IllegalStateException(resources.getString(R.string.err_no_exam_info_to_submit)))
         }
 
         _uiState.value = state.copy(
@@ -714,7 +722,7 @@ class TakeExamViewModel(
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(
                 submitting = false,
-                errorMessage = e.message ?: "시험 제출에 실패했습니다.",
+                errorMessage = e.message ?: resources.getString(R.string.exam_submit_fail),
                 submitSuccess = false
             )
             Result.failure(e)
@@ -725,7 +733,8 @@ class TakeExamViewModel(
         private val apiService: ApiService,
         private val token: String,
         private val subjectId: String,
-        private val examId: String
+        private val examId: String,
+        private val resources: Resources
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(TakeExamViewModel::class.java)) {
@@ -734,11 +743,11 @@ class TakeExamViewModel(
                     apiService = apiService,
                     token = token,
                     subjectId = subjectId,
-                    examId = examId
+                    examId = examId,
+                    resources = resources
                 ) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 }
-

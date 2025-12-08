@@ -119,7 +119,7 @@ fun HomeScreen(navController: NavController) {
                     Text(
                         text = "Powered by GPT-5 & Gemini-2.5-pro 💚",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.outline,
+                            color = Color(0xFF222222),
                             textAlign = TextAlign.Center
                         ),
                         textAlign = TextAlign.Center

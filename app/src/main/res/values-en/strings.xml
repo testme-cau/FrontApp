@@ -279,5 +279,7 @@
     <string name="label_questions">Questions</string>
     <string name="label_est_time">Est. Time</string>
     <string name="label_minutes">min</string>
+    <string name="err_no_exam_info_to_submit">No exam information to submit.</string>
+    <string name="label_all_options">All</string>
 
 </resources>

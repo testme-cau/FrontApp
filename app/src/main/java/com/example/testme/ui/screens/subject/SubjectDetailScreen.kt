@@ -3,6 +3,7 @@ package com.example.testme.ui.screens.subject
 import android.app.Activity
 import android.content.ContentResolver
 import android.content.Intent
+import android.content.res.Resources
 import android.net.Uri
 import android.os.Build
 import android.provider.DocumentsContract
@@ -196,7 +197,8 @@ class SubjectDetailViewModel(
     private val apiService: ApiService,
     private val token: String,
     private val subjectId: String,
-    private val contentResolver: ContentResolver
+    private val contentResolver: ContentResolver,
+    private val resources: Resources
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubjectDetailUiState())
@@ -395,7 +397,7 @@ class SubjectDetailViewModel(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     loadingExams = false,
-                    examsError = e.message ?: "시험 목록을 불러오지 못했습니다."
+                    examsError = e.message ?: resources.getString(R.string.exam_list_load_fail)
                 )
             }
         }
@@ -511,12 +513,13 @@ class SubjectDetailViewModelFactory(
     private val apiService: ApiService,
     private val token: String,
     private val subjectId: String,
-    private val contentResolver: ContentResolver
+    private val contentResolver: ContentResolver,
+    private val resources: Resources
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SubjectDetailViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SubjectDetailViewModel(apiService, token, subjectId, contentResolver) as T
+            return SubjectDetailViewModel(apiService, token, subjectId, contentResolver, resources) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
@@ -534,7 +537,13 @@ fun SubjectDetailScreen(
     subjectId: String,
     activity: Activity,
     viewModel: SubjectDetailViewModel = viewModel(
-        factory = SubjectDetailViewModelFactory(apiService, token, subjectId, activity.contentResolver)
+        factory = SubjectDetailViewModelFactory(
+            apiService, 
+            token, 
+            subjectId, 
+            activity.contentResolver,
+            activity.resources
+        )
     )
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -876,15 +885,17 @@ fun SubjectDetailScreen(
                 } else {
                     Button(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                                addCategory(Intent.CATEGORY_OPENABLE)
-                                type = "application/pdf"
-                                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                    putExtra(DocumentsContract.EXTRA_INITIAL_URI, MediaStore.Downloads.EXTERNAL_CONTENT_URI)
+                            if (!uiState.uploading) {
+                                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                                    addCategory(Intent.CATEGORY_OPENABLE)
+                                    type = "application/pdf"
+                                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                        putExtra(DocumentsContract.EXTRA_INITIAL_URI, MediaStore.Downloads.EXTERNAL_CONTENT_URI)
+                                    }
                                 }
+                                filePickerLauncher.launch(intent)
                             }
-                            filePickerLauncher.launch(intent)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -896,12 +907,20 @@ fun SubjectDetailScreen(
                         shape = RoundedCornerShape(999.dp),
                         contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
-                        Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.action_upload_pdf),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-                        )
+                        if (uiState.uploading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White,
+                                strokeWidth = 3.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.action_upload_pdf),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
                     }
                 }
             }
@@ -1477,5 +1496,3 @@ private fun ExamListSection(
         }
     }
 }
-
-// ExamRow removed from here (moved to ExamRow.kt)

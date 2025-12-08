@@ -155,42 +155,43 @@ fun EmailLoginScreen(navController: NavController) {
                                 .fillMaxWidth()
                                 .height(52.dp),
                             shape = RoundedCornerShape(18.dp),
-                            enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
+                            enabled = isLoading || (email.isNotBlank() && password.isNotBlank()),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = brandPrimary,
                                 contentColor = Color.White
                             ),
                             onClick = {
-                                coroutine.launch {
-                                    isLoading = true
-                                    errorMessage = ""
-                                    try {
-                                        auth.signInWithEmailAndPassword(email, password).await()
+                                if (!isLoading) {
+                                    coroutine.launch {
+                                        isLoading = true
+                                        errorMessage = ""
+                                        try {
+                                            auth.signInWithEmailAndPassword(email, password).await()
 
-                                        navController.navigate("home") {
-                                            popUpTo("login") { inclusive = true }
+                                            navController.navigate("home") {
+                                                popUpTo("login") { inclusive = true }
+                                            }
+                                        } catch (e: Exception) {
+                                            errorMessage = context.getString(R.string.login_fail_prefix, e.message ?: "")
+                                            coroutine.launch {
+                                                snackbarHostState.showSnackbar(errorMessage)
+                                            }
+                                        } finally {
+                                            isLoading = false
                                         }
-                                    } catch (e: Exception) {
-                                        errorMessage = context.getString(R.string.login_fail_prefix, e.message ?: "")
-                                        coroutine.launch {
-                                            snackbarHostState.showSnackbar(errorMessage)
-                                        }
-                                    } finally {
-                                        isLoading = false
                                     }
                                 }
                             }
                         ) {
                             if (isLoading) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier
-                                        .height(18.dp)
-                                        .padding(end = 8.dp),
-                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 3.dp,
                                     color = Color.White
                                 )
+                            } else {
+                                Text(stringResource(R.string.login_btn))
                             }
-                            Text(if (isLoading) stringResource(R.string.login_btn_loading) else stringResource(R.string.login_btn))
                         }
 
                         TextButton(

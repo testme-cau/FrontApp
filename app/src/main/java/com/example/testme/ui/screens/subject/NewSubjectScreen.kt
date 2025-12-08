@@ -228,21 +228,22 @@ fun NewSubjectScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    scope.launch {
-                                        val result = viewModel.submit(context)
-                                        if (result.isSuccess) {
-                                            snackbarHostState.showSnackbar(context.getString(R.string.msg_subject_create_success))
-                                            navController.popBackStack()
-                                        } else {
-                                            snackbarHostState.showSnackbar(
-                                                result.exceptionOrNull()?.message
-                                                    ?: context.getString(R.string.msg_subject_create_fail)
-                                            )
+                                    if (!uiState.submitting) {
+                                        scope.launch {
+                                            val result = viewModel.submit(context)
+                                            if (result.isSuccess) {
+                                                snackbarHostState.showSnackbar(context.getString(R.string.msg_subject_create_success))
+                                                navController.popBackStack()
+                                            } else {
+                                                snackbarHostState.showSnackbar(
+                                                    result.exceptionOrNull()?.message
+                                                        ?: context.getString(R.string.msg_subject_create_fail)
+                                                )
+                                            }
                                         }
                                     }
                                 },
-                                enabled = !uiState.submitting &&
-                                        uiState.name.isNotBlank(),
+                                enabled = uiState.submitting || uiState.name.isNotBlank(),
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = brandPrimary,
@@ -251,16 +252,13 @@ fun NewSubjectScreen(
                             ) {
                                 if (uiState.submitting) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier
-                                            .height(18.dp)
-                                            .padding(end = 8.dp),
-                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 3.dp,
                                         color = Color.White
                                     )
+                                } else {
+                                    Text(text = "Create")
                                 }
-                                Text(
-                                    text = if (uiState.submitting) stringResource(R.string.action_generating) else "Create"
-                                )
                             }
 
                             OutlinedButton(

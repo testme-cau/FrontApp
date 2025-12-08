@@ -287,5 +287,7 @@
     <string name="label_questions">문제</string>
     <string name="label_est_time">예상 시간</string>
     <string name="label_minutes">분</string>
+    <string name="err_no_exam_info_to_submit">제출할 시험 정보가 없습니다.</string>
+    <string name="label_all_options">전체</string>
 
 </resources>
