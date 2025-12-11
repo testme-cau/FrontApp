@@ -1,5 +1,7 @@
 # 🎨 test.me Android App
 
+> 🚀 **Try it live — [Crush your courses with personalized practice exams](https://testme.jdn.kr)**.
+
 > Prototype and UI design for the **test.me** Android application.  
 > Focused on layout composition, navigation flow, and interface styling using **Android Studio (Kotlin)**.
 
